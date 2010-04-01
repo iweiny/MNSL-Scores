@@ -1,0 +1,32 @@
+---
+abstract: 'Validate method/function parameters'
+author:
+  - 'Dave Rolsky, <autarch@urth.org> and Ilya Martynov <ilya@martynov.org>'
+build_requires:
+  ExtUtils::CBuilder: 0
+  Pod::Man: 1.14
+  Test::More: 0.34
+configure_requires:
+  Module::Build: 0.36
+generated_by: 'Module::Build version 0.3603'
+license: perl
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: Params-Validate
+provides:
+  Attribute::Params::Validate:
+    file: lib/Attribute/Params/Validate.pm
+    version: 1.07
+  Params::Validate:
+    file: lib/Params/Validate.pm
+    version: 0.95
+requires:
+  Attribute::Handlers: 0.79
+  Scalar::Util: 1.10
+  Test::More: 0
+resources:
+  bugtracker: http://rt.cpan.org/NoAuth/Bugs.html?Dist=Params-Validate
+  license: http://dev.perl.org/licenses/
+  repository: http://hg.urth.org/hg/Params-Validate
+version: 0.95

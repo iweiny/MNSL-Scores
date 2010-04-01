@@ -1,14 +1,26 @@
 #!/usr/bin/perl
 
+use lib "DateTime-0.55/lib";
+use lib "Params-Validate-0.95/lib";
+use lib "DateTime-Locale-0.45/lib";
+use lib "DateTime-TimeZone-1.15/lib";
+
+use DateTime;
+
 use Tk;
 use Tk::MatchEntry;
 use Tk::FileDialog;
 use Tk::BrowseEntry;
+use Tk::DateEntry;
 
-$dname = "./data";
-$shooter_db = "$dname/shooters_db";
-$caliber_db = "$dname/caliber_db";
-$division_db = "$dname/division_db";
+$data_dir = "./data";
+$db_dir = "$data_dir/db";
+$shooter_db = "$db_dir/shooters_db";
+$caliber_db = "$db_dir/caliber_db";
+$division_db = "$db_dir/division_db";
+
+$season = ();
+$date = ();
 
 @shooters = ("");
 @divisions = ();
@@ -16,18 +28,31 @@ $division_db = "$dname/division_db";
 
 $shooters_entry = undef;
 $caliber_entry = undef;
+$mb_date = undef;
+$mb_season = undef;
 
 sub ChoseSeason
 {
    my ($main) = @_;
    my $win = $main->FileDialog(-title => 'Chose ', -Create => 0);
-   $win->configure(-SelDir => 1, -ShowAll => 'yes', -Path => $dname);
-   $dname = $win->Show();
-   return $dname;
+   $win->configure(-SelDir => 1, -ShowAll => 'yes', -Path => $data_dir);
+   $season = $win->Show();
+   $mb_season->configure(-text=>"$season");
+   return $season;
 }
 
 sub GenPDF
 {
+}
+
+sub EnterDate
+{
+   my ($main) = @_;
+   my $win = $main->DialogBox(-title => 'Invalid Print', -buttons => ['OK']);
+   $win->Label(-text => "Enter Todays Date")->pack;
+   $win->DateEntry(-textvariable =>\$date)->pack;
+   $win->Show;
+   $mb_date->configure(-text=>"$date");
 }
 
 sub LoadDB
@@ -80,6 +105,12 @@ sub build_menubar
    $file_mb->command(-label=>'Chose Season...', -command => [\&ChoseSeason, $mw]);
    $file_mb->command(-label=>'Generate PDF...', -command => [\&GenPDF, $mw]);
    $file_mb->command(-label=>'Quit', -command => sub{exit});
+   my $date_mb = $menu_bar->Menubutton(-text=>'Date')->pack(-side=>'left');
+   $date_mb->command(-label=>'Enter Date...', -command => [\&EnterDate, $mw]);
+   $mb_date = $menu_bar->Label(-text=>$date)->pack(-side=>'right');
+   $menu_bar->Label(-text=>'Day: ')->pack(-side=>'right');
+   $mb_season = $menu_bar->Label(-text=>'<no season>')->pack(-side=>'right');
+   $menu_bar->Label(-text=>'Season: ')->pack(-side=>'right');
 }
 
 my $shooter = "";
@@ -131,10 +162,20 @@ sub build_main_window
 }
 
 
-if (! -d $dname) {
-   mkdir $dname
+if (! -d $data_dir) {
+   mkdir $data_dir
+}
+if (! -d $db_dir) {
+   mkdir $db_dir
 }
 
+
+# main
+$dt = DateTime->now;
+$mon = $dt->month;
+$day = $dt->day;
+$year = $dt->year;
+$date = "$mon/$day/$year";
 build_main_window;
 MainLoop;
 
