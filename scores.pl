@@ -7,12 +7,15 @@ use Tk::BrowseEntry;
 
 $dname = "./data";
 $shooter_db = "$dname/shooters_db";
+$caliber_db = "$dname/caliber_db";
 $division_db = "$dname/division_db";
 
 @shooters = ("");
-@divisions = ("");
+@divisions = ();
+@calibers = ();
 
 $shooters_entry = undef;
+$caliber_entry = undef;
 
 sub ChoseSeason
 {
@@ -27,59 +30,44 @@ sub GenPDF
 {
 }
 
-sub Save
+sub LoadDB
 {
-}
+   my ($db_file, $arr_ref) = @_;
 
-sub LoadShooters
-{
-   if (! -e $shooter_db) {
-      open FILE, "+>$shooter_db" or die "Could not open shooter DB for creation\n";
+   if (! -e $db_file) {
+      open FILE, "+>$db_file" or die "Could not open DB \"$db_file\" for creation\n";
    } else {
-      open FILE, "<$shooter_db" or die "Could not open shooter DB; $shooter_db\n";
+      open FILE, "<$db_file" or die "Could not open DB; $db_file\n";
    }
-   @shooters = <FILE>;
+   while (<FILE>) {
+      chomp $_;
+      push (@$arr_ref, $_);
+   }
    close (FILE);
 }
 
-sub LoadDivisions
+sub AddMatchEntry
 {
-   if (! -e $division_db) {
-      die "Division DB does not exist; please create\n";
-   }
+   my ($entry_widget, $new_entry, $db_file, $arr_ref) = @_;
 
-   open FILE, "<$division_db" or die "Could not open division DB; $division_db\n";
-   @divisions = <FILE>;
-   close (FILE);
-}
-
-
-sub AddShooter
-{
-   my ($new_shooter) = @_;
-
-   # don't add a shooter already in the DB
-   foreach $shooter (@shooters) {
-      if ($shooter eq $new_shooter) {
+   # don't add an entry already in the DB
+   foreach $i (@$arr_ref) {
+      if ($i eq $new_entry) {
          return;
       }
    }
 
-   print ("Adding shooter: $new_shooter to @shooters\n");
+   print ("Adding $new_entry to @$arr_ref\n");
 
    # add to the file on the fly
-   open FILE, ">>$shooter_db" or die "Could not open shooter DB; $shooter_db\n";
-   print FILE "$new_shooter\n";
+   open FILE, ">>$db_file" or die "Could not open DB; $db_file\n";
+   print FILE "$new_entry\n";
    close (FILE);
 
    # and to the array on the fly
-   push(@shooters, $new_shooter);
+   push(@$arr_ref, $new_entry);
 
-   $shooters_entry->choices(\@shooters);
-}
-
-sub Exit
-{
+   $entry_widget->choices($arr_ref);
 }
 
 sub build_menubar
@@ -94,22 +82,26 @@ sub build_menubar
    $file_mb->command(-label=>'Quit', -command => sub{exit});
 }
 
-my $name = "";
+my $shooter = "";
 my $division = "";
 my $caliber = "";
 my $score = "";
 
 sub SaveScore
 {
-   printf("Saving Score; $name $division $caliber $score\n");
+   printf("Saving Score; $shooter $division $caliber $score\n");
 
-   AddShooter($name);
+   AddMatchEntry($shooters_entry, $shooter, $shooter_db, \@shooters);
+   AddMatchEntry($caliber_entry, $caliber, $caliber_db, \@calibers);
+   $shooters_entry->selection('range', 0, 60);
+   $shooters_entry->focus();
 }
 
 sub build_main_window
 {
-   LoadShooters();
-   LoadDivisions();
+   LoadDB($shooter_db, \@shooters);
+   LoadDB($division_db, \@divisions);
+   LoadDB($caliber_db, \@calibers);
 
    my $mw = new MainWindow(-title => 'MNSL Scores');
    $mw->title("MNSL Scores");
@@ -121,12 +113,20 @@ sub build_main_window
    my $print_frame = $main_frame->Frame->pack(-side=>'top', -fill=>'x');
 
    $print_frame->Label(-text => "Shooter")->pack(-side=>'left');
-   $shooters_entry = $print_frame->MatchEntry(-textvariable => \$name, -choices => \@shooters)
+   $shooters_entry = $print_frame->MatchEntry(-textvariable => \$shooter, -choices => \@shooters)
                                        ->pack(-side=>'left');
 
    $print_frame->Label(-text => "Division")->pack(-side=>'left');
    $print_frame->Optionmenu(-options => \@divisions, -variable => \$division)->pack(-side=>'left');
-   $print_frame->Button(-text => "Enter", -command => [\&SaveScore, $name, $division, $caliber, $score])
+
+   $print_frame->Label(-text => "Caliber")->pack(-side=>'left');
+   $caliber_entry = $print_frame->MatchEntry(-textvariable => \$caliber, -choices => \@calibers)
+                                       ->pack(-side=>'left');
+
+   $print_frame->Label(-text => "Score")->pack(-side=>'left');
+   $print_frame->Entry(-textvariable => \$score)->pack(-side=>'left');
+
+   $print_frame->Button(-text => "Enter", -command => [\&SaveScore, $shooter, $division, $caliber, $score])
                      ->pack(-side=>'left');
 }
 
