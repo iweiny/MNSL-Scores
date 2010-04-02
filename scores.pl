@@ -4,7 +4,6 @@ use lib "DateTime-0.55/lib";
 use lib "Params-Validate-0.95/lib";
 use lib "DateTime-Locale-0.45/lib";
 use lib "DateTime-TimeZone-1.15/lib";
-
 use DateTime;
 
 use Tk;
@@ -12,6 +11,8 @@ use Tk::MatchEntry;
 use Tk::FileDialog;
 use Tk::BrowseEntry;
 use Tk::DateEntry;
+
+use Generate;
 
 $data_dir = "./data";
 $db_dir = "$data_dir/db";
@@ -67,6 +68,7 @@ sub EditScores
 
 sub GenPDF
 {
+   Generate::PDF($season);
 }
 
 sub Exit
