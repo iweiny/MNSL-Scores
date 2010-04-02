@@ -18,6 +18,8 @@ $db_dir = "$data_dir/db";
 $shooter_db = "$db_dir/shooters_db";
 $caliber_db = "$db_dir/caliber_db";
 $division_db = "$db_dir/division_db";
+$event_db = "$db_dir/event_db";
+$season_db = "$db_dir/season_db";
 
 $season = ();
 $date = ();
@@ -25,32 +27,63 @@ $date = ();
 @shooters = ("");
 @divisions = ();
 @calibers = ();
+@events = ();
 
 $shooters_entry = undef;
 $caliber_entry = undef;
 $mb_date = undef;
 $mb_season = undef;
 
-sub ChoseSeason
+sub SelectSeason
 {
    my ($main) = @_;
    my $win = $main->FileDialog(-title => 'Chose ', -Create => 0);
-   $win->configure(-SelDir => 1, -ShowAll => 'yes', -Path => $data_dir);
+   $win->configure(-Title => "Select Season Directory", -SelDir => 1, -ShowAll => 'yes', -Path => $data_dir);
    $season = $win->Show();
    $mb_season->configure(-text=>"$season");
    return $season;
+}
+
+sub CreateSeason
+{
+   my ($main) = @_;
+   my $win = $main->FileDialog(-title => 'Chose ', -Create => 0);
+   $win->configure(-Title => "Enter New Season Name", -SelDir => 1, -ShowAll => 'yes', -Path => $data_dir);
+   $season = $win->Show();
+   $mb_season->configure(-text=>"$season");
+   if (! -d $season) {
+      mkdir $season;
+   }
+   return $season;
+}
+
+sub EditName
+{
+}
+
+sub EditScores
+{
 }
 
 sub GenPDF
 {
 }
 
-sub EnterDate
+sub Exit
+{
+   open FILE, "+>$season_db" or die "Could not open config \"$season_db\"\n";
+   print FILE "$season";
+   close (FILE);
+   exit;
+}
+
+
+sub ChangeDate
 {
    my ($main) = @_;
-   my $win = $main->DialogBox(-title => 'Invalid Print', -buttons => ['OK']);
-   $win->Label(-text => "Enter Todays Date")->pack;
-   $win->DateEntry(-textvariable =>\$date)->pack;
+   my $win = $main->DialogBox(-title => 'Change Date', -buttons => ['OK']);
+   $win->Label(-text => "Change Date")->pack;
+   $win->DateEntry(-textvariable =>\$date, -dateformat=>4)->pack;
    $win->Show;
    $mb_date->configure(-text=>"$date");
 }
@@ -82,8 +115,6 @@ sub AddMatchEntry
       }
    }
 
-   print ("Adding $new_entry to @$arr_ref\n");
-
    # add to the file on the fly
    open FILE, ">>$db_file" or die "Could not open DB; $db_file\n";
    print FILE "$new_entry\n";
@@ -102,25 +133,38 @@ sub build_menubar
 
    # File
    my $file_mb = $menu_bar->Menubutton(-text=>'File')->pack(-side=>'left');
-   $file_mb->command(-label=>'Chose Season...', -command => [\&ChoseSeason, $mw]);
-   $file_mb->command(-label=>'Generate PDF...', -command => [\&GenPDF, $mw]);
-   $file_mb->command(-label=>'Quit', -command => sub{exit});
+   $file_mb->command(-label=>'Select Season...', -command => [\&SelectSeason, $mw]);
+   $file_mb->command(-label=>'Create Season...', -command => [\&CreateSeason, $mw]);
+   $file_mb->command(-label=>'Quit', -command => [\&Exit]);
+
+   my $file_mb = $menu_bar->Menubutton(-text=>'Edit')->pack(-side=>'left');
+   $file_mb->command(-label=>'Name...', -command => [\&EditName, $mw]);
+   $file_mb->command(-label=>'Scores...', -command => [\&EditScores, $mw]);
+
+   my $gen_mb = $menu_bar->Menubutton(-text=>'Generate')->pack(-side=>'left');
+   $gen_mb->command(-label=>'PDF...', -command => [\&GenPDF, $mw]);
+
    my $date_mb = $menu_bar->Menubutton(-text=>'Date')->pack(-side=>'left');
-   $date_mb->command(-label=>'Enter Date...', -command => [\&EnterDate, $mw]);
+   $date_mb->command(-label=>'Change Date...', -command => [\&ChangeDate, $mw]);
    $mb_date = $menu_bar->Label(-text=>$date)->pack(-side=>'right');
    $menu_bar->Label(-text=>'Day: ')->pack(-side=>'right');
-   $mb_season = $menu_bar->Label(-text=>'<no season>')->pack(-side=>'right');
+   $mb_season = $menu_bar->Label(-text=>$season)->pack(-side=>'right');
    $menu_bar->Label(-text=>'Season: ')->pack(-side=>'right');
 }
 
 my $shooter = "";
+my $event = "";
 my $division = "";
 my $caliber = "";
 my $score = "";
 
 sub SaveScore
 {
-   printf("Saving Score; $shooter $division $caliber $score\n");
+   printf("Saving Score; $shooter $event $division $caliber $score => $date\n");
+
+   open FILE, ">>$season/$date" or die "Could not open DB; $season/$date\n";
+   print FILE "$shooter,$event,$division,$caliber,$score\n";
+   close (FILE);
 
    AddMatchEntry($shooters_entry, $shooter, $shooter_db, \@shooters);
    AddMatchEntry($caliber_entry, $caliber, $caliber_db, \@calibers);
@@ -132,6 +176,7 @@ sub build_main_window
 {
    LoadDB($shooter_db, \@shooters);
    LoadDB($division_db, \@divisions);
+   LoadDB($event_db, \@events);
    LoadDB($caliber_db, \@calibers);
 
    my $mw = new MainWindow(-title => 'MNSL Scores');
@@ -147,6 +192,9 @@ sub build_main_window
    $shooters_entry = $print_frame->MatchEntry(-textvariable => \$shooter, -choices => \@shooters)
                                        ->pack(-side=>'left');
 
+   $print_frame->Label(-text => "Event")->pack(-side=>'left');
+   $print_frame->Optionmenu(-options => \@events, -variable => \$event)->pack(-side=>'left');
+
    $print_frame->Label(-text => "Division")->pack(-side=>'left');
    $print_frame->Optionmenu(-options => \@divisions, -variable => \$division)->pack(-side=>'left');
 
@@ -157,7 +205,7 @@ sub build_main_window
    $print_frame->Label(-text => "Score")->pack(-side=>'left');
    $print_frame->Entry(-textvariable => \$score)->pack(-side=>'left');
 
-   $print_frame->Button(-text => "Enter", -command => [\&SaveScore, $shooter, $division, $caliber, $score])
+   $print_frame->Button(-text => "Save", -command => [\&SaveScore, $shooter, $event, $division, $caliber, $score])
                      ->pack(-side=>'left');
 }
 
@@ -171,11 +219,20 @@ if (! -d $db_dir) {
 
 
 # main
+# Get todays date for the file
 $dt = DateTime->now;
-$mon = $dt->month;
-$day = $dt->day;
-$year = $dt->year;
-$date = "$mon/$day/$year";
+$date = $dt->ymd;
+
+# Open last season used
+if (-e $season_db) {
+   open FILE, "<$season_db" or die "Could not open config \"$season_db\"\n";
+   while (<FILE>) {
+      chomp $_;
+      $season = $_;
+   }
+   close(FILE);
+}
+
 build_main_window;
 MainLoop;
 
