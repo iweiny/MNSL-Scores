@@ -39,7 +39,8 @@ sub SelectSeason
 {
    my ($main) = @_;
    my $win = $main->FileDialog(-title => 'Chose ', -Create => 0);
-   $win->configure(-Title => "Select Season Directory", -SelDir => 1, -ShowAll => 'yes', -Path => $data_dir);
+   $win->configure(-Title => "Select Season Directory", -SelDir => 1, -ShowAll => 'yes',
+                  -Path => $data_dir);
    $season = $win->Show();
    $mb_season->configure(-text=>"$season");
    return $season;
@@ -49,7 +50,8 @@ sub CreateSeason
 {
    my ($main) = @_;
    my $win = $main->FileDialog(-title => 'Chose ', -Create => 0);
-   $win->configure(-Title => "Enter New Season Name", -SelDir => 1, -ShowAll => 'yes', -Path => $data_dir);
+   $win->configure(-Title => "Enter New Season Name", -SelDir => 1, -ShowAll => 'yes',
+                  -Path => $data_dir);
    $season = $win->Show();
    $mb_season->configure(-text=>"$season");
    if (! -d $season) {
@@ -70,6 +72,12 @@ sub GenPDF
 {
    Generate::PDF($season);
 }
+
+sub GenHTML
+{
+   Generate::HTML($season);
+}
+
 
 sub Exit
 {
@@ -131,7 +139,8 @@ sub AddMatchEntry
 sub build_menubar
 {
    my ($mw) = @_;
-   my $menu_bar = $mw->Frame(-relief =>'groove', -borderwidth=>3)->pack(-side=>'top', -fill=>'x');
+   my $menu_bar = $mw->Frame(-relief =>'groove', -borderwidth=>3)
+                           ->pack(-side=>'top', -fill=>'x');
 
    # File
    my $file_mb = $menu_bar->Menubutton(-text=>'File')->pack(-side=>'left');
@@ -145,6 +154,7 @@ sub build_menubar
 
    my $gen_mb = $menu_bar->Menubutton(-text=>'Generate')->pack(-side=>'left');
    $gen_mb->command(-label=>'PDF...', -command => [\&GenPDF, $mw]);
+   $gen_mb->command(-label=>'HTML...', -command => [\&GenHTML, $mw]);
 
    my $date_mb = $menu_bar->Menubutton(-text=>'Date')->pack(-side=>'left');
    $date_mb->command(-label=>'Change Date...', -command => [\&ChangeDate, $mw]);
@@ -189,26 +199,32 @@ sub build_main_window
    my $main_frame = $mw->Frame->pack(-side=>'bottom', -fill=>'x');
 
    my $print_frame = $main_frame->Frame->pack(-side=>'top', -fill=>'x');
+   $print_frame->Label(-text => "Shooter")->grid(
+                     $print_frame->Label(-text => "Event"),
+                     $print_frame->Label(-text => "Division"),
+                     $print_frame->Label(-text => "Caliber"),
+                     $print_frame->Label(-text => "Score"),
+                      -sticky => "nsew");
 
-   $print_frame->Label(-text => "Shooter")->pack(-side=>'left');
-   $shooters_entry = $print_frame->MatchEntry(-textvariable => \$shooter, -choices => \@shooters)
-                                       ->pack(-side=>'left');
 
-   $print_frame->Label(-text => "Event")->pack(-side=>'left');
-   $print_frame->Optionmenu(-options => \@events, -variable => \$event)->pack(-side=>'left');
+   $shooters_entry = $print_frame->MatchEntry(-textvariable => \$shooter,
+                                             -choices => \@shooters);
+   my $event = $print_frame->Optionmenu(-options => \@events,
+                                       -variable => \$event),
+   my $division = $print_frame->Optionmenu(-options => \@divisions,
+                                       -variable => \$division),
+   $caliber_entry = $print_frame->MatchEntry(-textvariable => \$caliber,
+                                             -choices => \@calibers);
 
-   $print_frame->Label(-text => "Division")->pack(-side=>'left');
-   $print_frame->Optionmenu(-options => \@divisions, -variable => \$division)->pack(-side=>'left');
-
-   $print_frame->Label(-text => "Caliber")->pack(-side=>'left');
-   $caliber_entry = $print_frame->MatchEntry(-textvariable => \$caliber, -choices => \@calibers)
-                                       ->pack(-side=>'left');
-
-   $print_frame->Label(-text => "Score")->pack(-side=>'left');
-   $print_frame->Entry(-textvariable => \$score)->pack(-side=>'left');
-
-   $print_frame->Button(-text => "Save", -command => [\&SaveScore, $shooter, $event, $division, $caliber, $score])
-                     ->pack(-side=>'left');
+   $shooters_entry->grid(
+               $event,
+               $division,
+               $caliber_entry,
+               $print_frame->Entry(-textvariable => \$score),
+               $print_frame->Button(-text => "Save",
+                           -command => [\&SaveScore, $shooter, $event, $division,
+                                                      $caliber, $score]),
+                   -sticky => "nsew");
 }
 
 
