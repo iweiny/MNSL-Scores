@@ -6,6 +6,8 @@ use lib "DateTime-Locale-0.45/lib";
 use lib "DateTime-TimeZone-1.15/lib";
 use DateTime;
 
+use File::Basename;
+
 use Tk;
 use Tk::MatchEntry;
 use Tk::FileDialog;
@@ -23,6 +25,7 @@ $event_db = "$db_dir/event_db";
 $season_db = "$db_dir/season_db";
 
 $season = ();
+$season_path = ();
 $date = ();
 
 @shooters = ("");
@@ -41,7 +44,9 @@ sub SelectSeason
    my $win = $main->FileDialog(-title => 'Chose ', -Create => 0);
    $win->configure(-Title => "Select Season Directory", -SelDir => 1, -ShowAll => 'yes',
                   -Path => $data_dir);
-   $season = $win->Show();
+   my $choice = $win->Show();
+   my $suffix = ();
+   ($season, $season_path, $suffix) = fileparse($choice, qr/\.[^.]*/);
    $mb_season->configure(-text=>"$season");
    return $season;
 }
@@ -52,10 +57,11 @@ sub CreateSeason
    my $win = $main->FileDialog(-title => 'Chose ', -Create => 0);
    $win->configure(-Title => "Enter New Season Name", -SelDir => 1, -ShowAll => 'yes',
                   -Path => $data_dir);
-   $season = $win->Show();
+   my $choice = $win->Show();
+   ($season, $season_path, $suffix) = fileparse($choice, qr/\.[^.]*/);
    $mb_season->configure(-text=>"$season");
-   if (! -d $season) {
-      mkdir $season;
+   if (! -d $season_path/$season) {
+      mkdir $season_path/$season;
    }
    return $season;
 }
@@ -68,21 +74,34 @@ sub EditScores
 {
 }
 
+sub showGenComplete
+{
+   my ($type, $main) = @_;
+   my $win = $main->DialogBox(-title => "Generate $type Complete", -buttons => ['OK']);
+   $win->Label(-text => "Generate $type Complete\n")->pack;
+   $win->Show;
+}
+
 sub GenPDF
 {
-   Generate::PDF($season);
+   my ($main) = @_;
+   Generate::PDF($season, $season_path);
+   showGenComplete("pdf", $main);
 }
 
 sub GenHTML
 {
-   Generate::HTML($season);
+   my ($main) = @_;
+   Generate::HTML($season, $season_path);
+   showGenComplete("html", $main);
 }
 
 
 sub Exit
 {
    open FILE, "+>$season_db" or die "Could not open config \"$season_db\"\n";
-   print FILE "$season";
+   print FILE "$season\n";
+   print FILE "$season_path\n";
    close (FILE);
    exit;
 }
@@ -174,8 +193,8 @@ sub SaveScore
 {
    printf("Saving Score; $shooter $event $division $caliber $score => $date\n");
 
-   open FILE, ">>$season/$date" or die "Could not open DB; $season/$date\n";
-   print FILE "$shooter,$event,$division,$caliber,$score\n";
+   open FILE, ">>$season_path/$season/$date" or die "Could not open DB; $season_path/$season/$date\n";
+   print FILE "$shooter:$event:$division:$caliber:$score\n";
    close (FILE);
 
    AddMatchEntry($shooters_entry, $shooter, $shooter_db, \@shooters);
@@ -244,10 +263,10 @@ $date = $dt->ymd;
 # Open last season used
 if (-e $season_db) {
    open FILE, "<$season_db" or die "Could not open config \"$season_db\"\n";
-   while (<FILE>) {
-      chomp $_;
-      $season = $_;
-   }
+   $season = <FILE>;
+   chomp $season;
+   $season_path = <FILE>;
+   chomp $season_path;
    close(FILE);
 }
 

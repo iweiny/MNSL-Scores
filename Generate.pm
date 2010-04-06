@@ -11,7 +11,7 @@ use vars qw($VERSION);
 
 $VERSION     = 1.00;
 
-my $tmp = "/tmp";
+my $tmp = "tmp";
 
 sub write_latex_header
 {
@@ -35,18 +35,24 @@ sub write_html_footer
 }
 
 #
-# HTML($season)
+# HTML($season, $season_path)
 # season == directory to generate file for.
 sub HTML
 {
-   my ($season) = @_;
+   my ($season, $season_path) = @_;
    my $filename;
    my $html = "$tmp/$season.html";
+   my $day_section = "$tmp/tmp.html";
 
    open HTML_FILE, ">$html" or die "could not open $html";
-   write_html_header(<HTML_FILE>, $season);
+   write_html_header(\*HTML_FILE, $season);
 
-   opendir ( DIR, $season ) || die "Error in opening $season\n";
+
+   print HTML_FILE "<table>\n";
+   print HTML_FILE "<tr>\n";
+
+   opendir ( DIR, "$season_path/$season" ) || die "Error in opening $season_path/$season\n";
+   open SECTION, ">$day_section" or die "could not open $day_section";
    while( ($filename = readdir(DIR))) {
       if (($filename ne ".") and ($filename ne "..")) {
          my $year='';
@@ -59,12 +65,51 @@ sub HTML
          }
          my $dt = DateTime->new(year=>$year,month=>$mon, day=>$day);
          $mon = $dt->month_name;
-         print("$filename => $mon $day, $year\n");
+
+         # print the header for this
+         print HTML_FILE "<td><a href=\"#$filename\">$mon $day, $year</a></td>\n";
+
+         # print the scores for this day for each person
+         print SECTION "\n<a name=\"$filename\"><h2>$mon $day, $year</h2></a>\n";
+
+         print SECTION "<table cellpadding='5'>\n";
+         print SECTION "<tr>\n";
+         print SECTION "<th>Name</th>\n";
+         print SECTION "<th>Scores</th>\n";
+         print SECTION "</tr>\n";
+
+         open DAY, "<$season_path/$season/$filename"
+                  or die "failed to open scores file $season_path/$season/$filename";
+         while (<DAY>) {
+            my ($name, $event, $div, $cal, $score) = split(/:/, $_);
+            print SECTION "<tr>\n";
+            print SECTION "<td>$name</td><td>$event</td><td>$div</td><td>$cal</td><td>$score</td>\n";
+            print SECTION "</tr>\n";
+         }
+         close(DAY);
+
+         print SECTION "</table>\n";
+
+         # add these scores to the totals for the season
       }
    }
    closedir(DIR);
 
-   write_html_footer(<HTML_FILE>);
+   close(SECTION);
+   print HTML_FILE "</tr>\n";
+   print HTML_FILE "</table>\n";
+
+   # print combined scores
+
+
+   # insert the days scores from the "<SECTION>" file
+   open SECTION, "<$day_section" or die "could not open $day_section";
+   while (<SECTION>) {
+      print HTML_FILE $_;
+   }
+   close(SECTION);
+
+   write_html_footer(\*HTML_FILE);
    close(HTML_FILE);
 }
 
