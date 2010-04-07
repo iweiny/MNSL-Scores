@@ -62,16 +62,67 @@ sub CreateSeason
    return $season;
 }
 
+# go through all days files and change the name.
+sub changeName
+{
+   my ($old, $new) = @_;
+
+   # "fix" the name in the shooters DB
+   open DB, "<$shooter_db" or die "Could not open DB; $shooter_db\n";
+   open NEW_DB, ">$shooter_db.tmp" or die "Could not open DB; $shooter_db.tmp\n";
+   while (<DB>) {
+      chomp $_;
+      if ($_ eq $old) {
+         print NEW_DB "$new\n";
+      } else {
+         print  NEW_DB"$_\n";
+      }
+   }
+   close (DB);
+   close (NEW_DB);
+   system("mv $shooter_db.tmp $shooter_db");
+
+   # "fix" the name in the data files
+   opendir ( DIR, "$season_path/$season" ) || die "Error in opening $season_path/$season\n";
+   while( ($filename = readdir(DIR))) {
+      if (($filename ne ".") and ($filename ne "..")) {
+         open NEW_DAY, ">$season_path/$season/$filename.tmp"
+                  or die "failed to open scores file $season_path/$season/$filename.tmp";
+         open DAY, "<$season_path/$season/$filename"
+                  or die "failed to open scores file $season_path/$season/$filename";
+         while (<DAY>) {
+            my ($name, $ev, $div, $cal, $score) = split(/:/, $_);
+            if ($name eq $old) {
+               $name = $new;
+            }
+            print NEW_DAY "$name:$ev:$div:$cal:$score";
+         }
+         close(DAY);
+         close(NEW_DAY);
+         system("mv $season_path/$season/$filename.tmp $season_path/$season/$filename");
+      }
+   }
+   closedir(DIR);
+
+}
+
 sub EditName
 {
+   my ($main) = @_;
    my $old_name = "";
-   my $win = $main->DialogBox(-title => "Change Name", -buttons => ['OK']);
-   $win->Label(-text => "Change:")->pack;
-   my $shooter_entry = $win->MatchEntry(-textvariable => \$old_name,
-                                  -choices => \@shooters)->pack;
-   $win->Label(-text => "to")->pack;
-   $win->Entry(-textvariable => \$new_name)->pack;
-   $win->Show;
+   my $dialog = $main->DialogBox(-title => "Change Name", -buttons => ["OK","Cancel"]);
+   $dialog->Label(-text => "Change:")->pack(-side=>'left');
+   my $shooter_entry = $dialog->MatchEntry(-textvariable => \$old_name,
+                                  -choices => \@shooters)->pack(-side=>'left');
+   $dialog->Label(-text => "to")->pack(-side=>'left');
+   $dialog->Entry(-textvariable => \$new_name)->pack(-side=>'left');
+   my $choice = $dialog->Show();
+   if ($choice eq "OK") {
+      print "Changing $old_name to $new_name\n";
+      changeName($old_name, $new_name);
+      LoadDB($shooter_db, \@shooters);
+      $shooters_entry->choices(\@shooters);
+   }
 }
 
 sub EditScores
