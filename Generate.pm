@@ -33,7 +33,7 @@ sub read_data_date #(season, season_path)
                $scores_date{$filename}{$ev}{$div}{$name} = "$cal/$score";
             } else {
                $scores_date{$filename}{$ev}{$div}{$name}
-                  = "$scores_date{$filename}{$ev}{$div}{$name},$cal/$score";
+                  = "$scores_date{$filename}{$ev}{$div}{$name}:$cal/$score";
             }
          }
          close(DAY);
@@ -133,7 +133,7 @@ sub HTML
 	    foreach my $name (@names) {
                print HTML_FILE "<tr>\n";
                print HTML_FILE "<td>$name</td>";
-	       my @tmp = split /,/, $scores_date{$date}{$ev}{$div}{$name};
+	       my @tmp = split /:/, $scores_date{$date}{$ev}{$div}{$name};
 	       foreach my $score (@tmp) {
                   print HTML_FILE "<td>$score</td>";
 	       }

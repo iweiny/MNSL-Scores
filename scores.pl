@@ -191,6 +191,10 @@ my $score = "";
 
 sub SaveScore
 {
+   $shooter =~ s/:/;/g;
+   $caliber =~ s/:/;/g;
+   $score =~ s/:/;/g;
+
    printf("Saving Score; $shooter $event $division $caliber $score => $date\n");
 
    open FILE, ">>$season_path/$season/$date" or die "Could not open DB; $season_path/$season/$date\n";
