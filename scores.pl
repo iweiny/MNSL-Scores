@@ -39,6 +39,7 @@ sub SelectSeason
    $win->configure(-Title => "Select Season Directory", -SelDir => 1, -ShowAll => 'yes',
                   -Path => $data_dir);
    my $choice = $win->Show();
+
    my $suffix = ();
    ($season, $season_path, $suffix) = fileparse($choice, qr/\.[^.]*/);
    $mb_season->configure(-text=>"$season");
@@ -52,6 +53,7 @@ sub CreateSeason
    $win->configure(-Title => "Enter New Season Name", -SelDir => 1, -ShowAll => 'yes',
                   -Path => $data_dir);
    my $choice = $win->Show();
+
    ($season, $season_path, $suffix) = fileparse($choice, qr/\.[^.]*/);
    $mb_season->configure(-text=>"$season");
    if (! -d $season_path/$season) {
@@ -73,6 +75,14 @@ sub showGenComplete
    my ($type, $main) = @_;
    my $win = $main->DialogBox(-title => "Generate $type Complete", -buttons => ['OK']);
    $win->Label(-text => "Generate $type Complete\n")->pack;
+
+   my $geom = $main->geometry;
+   if ($geom =~ m/(\d+)x(\d+)\+(\d+)\+(\d+)/) {
+      my $left = int (($1/2) + $3);
+      my $top = int ($4);
+print "IKW +$left+$top\n";
+      $win->geometry("+$left+$top");
+   }
    $win->Show;
 }
 
@@ -217,7 +227,7 @@ sub build_main_window
 
    my $mw = new MainWindow(-title => 'MNSL Scores');
    $mw->title("MNSL Scores");
-   
+
    build_menubar($mw);
    
    my $main_frame = $mw->Frame->pack(-side=>'bottom', -fill=>'x');
@@ -249,6 +259,12 @@ sub build_main_window
                            -command => [\&SaveScore, $shooter, $event, $division,
                                                       $caliber, $score]),
                    -sticky => "nsew");
+
+   my $sw = $mw->screenwidth;
+   my $sh = $mw->screenheight;
+   $mw{left} = int(($sw - $mw{width})/8);
+   $mw{top} = int(($sh - $mw{height})/8);
+   $mw->geometry("+".$mw{left}."+".$mw{top});
 }
 
 
