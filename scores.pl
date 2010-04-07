@@ -112,8 +112,7 @@ sub EditName
    my $old_name = "";
    my $dialog = $main->DialogBox(-title => "Change Name", -buttons => ["OK","Cancel"]);
    $dialog->Label(-text => "Change:")->pack(-side=>'left');
-   my $shooter_entry = $dialog->MatchEntry(-textvariable => \$old_name,
-                                  -choices => \@shooters)->pack(-side=>'left');
+   $dialog->MatchEntry(-textvariable => \$old_name, -choices => \@shooters)->pack(-side=>'left');
    $dialog->Label(-text => "to")->pack(-side=>'left');
    $dialog->Entry(-textvariable => \$new_name)->pack(-side=>'left');
    my $choice = $dialog->Show();
@@ -127,6 +126,16 @@ sub EditName
 
 sub EditScores
 {
+   my ($main) = @_;
+   my $date = "";
+   my $name = "";
+   my $win = $main->DialogBox(-title => 'Choose Date/Name', -buttons => ["OK","Cancel"]);
+   $win->DateEntry(-textvariable =>\$date, -dateformat=>4)->pack(-side=>'left');
+   $win->MatchEntry(-textvariable => \$name, -choices => \@shooters)->pack(-side=>'left');
+   my $choice = $win->Show();
+   if ($choice eq "OK") {
+      print "Changing scores for $name on $date\n";
+   }
 }
 
 sub showGenComplete
@@ -324,6 +333,7 @@ sub build_main_window
    $mw{left} = int(($sw - $mw{width})/8);
    $mw{top} = int(($sh - $mw{height})/8);
    $mw->geometry("+".$mw{left}."+".$mw{top});
+   $mw->resizable(0,0);
 }
 
 
