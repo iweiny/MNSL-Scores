@@ -1,11 +1,5 @@
 #!/usr/bin/perl
 
-use lib "DateTime-0.55/lib";
-use lib "Params-Validate-0.95/lib";
-use lib "DateTime-Locale-0.45/lib";
-use lib "DateTime-TimeZone-1.15/lib";
-use DateTime;
-
 use File::Basename;
 
 use Tk;
@@ -96,6 +90,12 @@ sub GenHTML
    showGenComplete("html", $main);
 }
 
+sub GenDataTar
+{
+   my ($main) = @_;
+   Generate::DataTar($season, $season_path);
+   showGenComplete("Data Tarball", $main);
+}
 
 sub Exit
 {
@@ -174,6 +174,7 @@ sub build_menubar
    my $gen_mb = $menu_bar->Menubutton(-text=>'Generate')->pack(-side=>'left');
    $gen_mb->command(-label=>'PDF...', -command => [\&GenPDF, $mw]);
    $gen_mb->command(-label=>'HTML...', -command => [\&GenHTML, $mw]);
+   $gen_mb->command(-label=>'Data Tarball...', -command => [\&GenDataTar, $mw]);
 
    my $date_mb = $menu_bar->Menubutton(-text=>'Date')->pack(-side=>'left');
    $date_mb->command(-label=>'Change Date...', -command => [\&ChangeDate, $mw]);
@@ -260,9 +261,12 @@ if (! -d $db_dir) {
 
 
 # main
-# Get todays date for the file
-$dt = DateTime->now;
-$date = $dt->ymd;
+# Get todays date as a default
+my ($second, $minute, $hour, $dayOfMonth, $month, $yearOffset, $dayOfWeek,
+   $dayOfYear, $daylightSavings) = localtime();
+my $year = 1900 + $yearOffset;
+my $month = 1 + $month;
+$date = sprintf("%04d-%02d-%02d", $year, $month, $dayOfMonth);
 
 # Open last season used
 if (-e $season_db) {

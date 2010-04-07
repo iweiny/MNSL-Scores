@@ -1,17 +1,13 @@
 package Generate;
 
-use lib "DateTime-0.55/lib";
-use lib "Params-Validate-0.95/lib";
-use lib "DateTime-Locale-0.45/lib";
-use lib "DateTime-TimeZone-1.15/lib";
-use DateTime;
-
 use strict;
 use vars qw($VERSION);
 
 $VERSION     = 1.00;
 
 my $tmp = "tmp";
+my @month_names = ("", "January", "Febuary", "March", "April", "May", "June",
+                  "July", "August", "September", "October", "November", "December");
 
 # return %scores_date
 sub read_data_date #(season, season_path)
@@ -93,8 +89,7 @@ sub HTML
             $mon = $2;
             $day = $3;
          }
-         my $dt = DateTime->new(year=>$year,month=>$mon,day=>$day);
-         $mon = $dt->month_name;
+         $mon = $month_names[$mon];
          # print the header for this
          print HTML_FILE "<td><a href=\"#$date\">$mon $day, $year</a></td>\n";
    }
@@ -114,8 +109,7 @@ sub HTML
          $mon = $2;
          $day = $3;
       }
-      my $dt = DateTime->new(year=>$year,month=>$mon,day=>$day);
-      $mon = $dt->month_name;
+      $mon = $month_names[$mon];
 
       # print the scores for this day for each person
       print HTML_FILE "\n<hr><a name=\"$date\"><h2>$mon $day, $year</h2></a>\n";
@@ -148,6 +142,12 @@ sub HTML
    close(HTML_FILE);
 }
 
+sub DataTar
+{
+   my ($season, $season_path) = @_;
+   system("pushd $season_path; tar czf $season.tgz $season; popd; mv $season_path/$season.tgz $tmp");
+}
+
 #
 # PDF($season)
 # season == directory to generate file for.
@@ -171,8 +171,7 @@ sub PDF
             $mon = $2;
             $day = $3;
          }
-         my $dt = DateTime->new(year=>$year,month=>$mon, day=>$day);
-         $mon = $dt->month_name;
+         $mon = $month_names[$mon];
          print("$filename => $mon $day, $year\n");
       }
    }
