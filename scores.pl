@@ -64,6 +64,14 @@ sub CreateSeason
 
 sub EditName
 {
+   my $old_name = "";
+   my $win = $main->DialogBox(-title => "Change Name", -buttons => ['OK']);
+   $win->Label(-text => "Change:")->pack;
+   my $shooter_entry = $win->MatchEntry(-textvariable => \$old_name,
+                                  -choices => \@shooters)->pack;
+   $win->Label(-text => "to")->pack;
+   $win->Entry(-textvariable => \$new_name)->pack;
+   $win->Show;
 }
 
 sub EditScores
@@ -80,18 +88,18 @@ sub showGenComplete
    if ($geom =~ m/(\d+)x(\d+)\+(\d+)\+(\d+)/) {
       my $left = int (($1/2) + $3);
       my $top = int ($4);
-print "IKW +$left+$top\n";
       $win->geometry("+$left+$top");
    }
    $win->Show;
 }
 
-sub GenPDF
-{
-   my ($main) = @_;
-   Generate::PDF($season, $season_path);
-   showGenComplete("pdf", $main);
-}
+# Leave this for another day
+#sub GenPDF
+#{
+#   my ($main) = @_;
+#   Generate::PDF($season, $season_path);
+#   showGenComplete("pdf", $main);
+#}
 
 sub GenHTML
 {
@@ -182,7 +190,7 @@ sub build_menubar
    $file_mb->command(-label=>'Scores...', -command => [\&EditScores, $mw]);
 
    my $gen_mb = $menu_bar->Menubutton(-text=>'Generate')->pack(-side=>'left');
-   $gen_mb->command(-label=>'PDF...', -command => [\&GenPDF, $mw]);
+   #$gen_mb->command(-label=>'PDF...', -command => [\&GenPDF, $mw]);
    $gen_mb->command(-label=>'HTML...', -command => [\&GenHTML, $mw]);
    $gen_mb->command(-label=>'Data Tarball...', -command => [\&GenDataTar, $mw]);
 
