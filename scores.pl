@@ -28,14 +28,20 @@ $caliber_entry = undef;
 @events = ();
 # In the MenuBar
 $mb_date = undef;
-$mb_season = undef;
+$mb_session = undef;
 
 sub ChangeSession
 {
    my ($main) = @_;
+   my $s;
    my $dialog = $main->DialogBox(-title => "Change Session", -buttons => ["OK","Cancel"]);
    $dialog->Label(-text => "Enter Session number:")->pack(-side=>'left');
-   $dialog->Entry(-textvariable => \$session)->pack(-side=>'left');
+   $dialog->Entry(-textvariable => \$s)->pack(-side=>'left');
+   $choice = $dialog->Show();
+   if ($choice eq "OK") {
+      $session = $s;
+      $mb_session->configure(-text=>"$session");
+   }
 }
 
 sub SplitName
@@ -194,10 +200,16 @@ sub GenHTML
    showGenComplete("html", $main);
 }
 
-sub GenDataBackup
+sub ExportDataFile
 {
    my ($main) = @_;
-   showGenComplete("Data Backup", $main);
+
+#   my $win = $main->FileDialog(-title => 'Export Data File', -Create => 0);
+#   $win->configure(-Title => "Select File", -SelDir => 1, -ShowAll => 'yes',
+#                  -Path => $data_dir);
+#   my $choice = $win->Show();
+
+   showGenComplete("Export Data Complete", $main);
 }
 
 sub ReadConfig
@@ -247,11 +259,16 @@ sub Exit
 sub ChangeDate
 {
    my ($main) = @_;
-   my $win = $main->DialogBox(-title => 'Change Date', -buttons => ['OK']);
+   my $d;
+   my $win = $main->DialogBox(-title => 'Change Date',
+                     -buttons => ["OK","Cancel"]);
    $win->Label(-text => "Change Date")->pack;
-   $win->DateEntry(-textvariable =>\$date, -dateformat=>4)->pack;
-   $win->Show;
-   $mb_date->configure(-text=>"$date");
+   $win->DateEntry(-textvariable =>\$d, -dateformat=>4)->pack;
+   $choice = $win->Show();
+   if ($choice eq "OK") {
+      $date = $d;
+      $mb_date->configure(-text=>"$date");
+   }
 }
 
 sub LoadShooterDB
@@ -327,23 +344,21 @@ sub build_menubar
 
    # File
    my $file_mb = $menu_bar->Menubutton(-text=>'File')->pack(-side=>'left');
-   $file_mb->command(-label=>'Change Session...', -command => [\&SelectSeason, $mw]);
+   $file_mb->command(-label=>'Change Session...', -command => [\&ChangeSession, $mw]);
+   $file_mb->command(-label=>'Generate HTML...', -command => [\&GenHTML, $mw]);
+   $file_mb->command(-label=>'Export Data File...', -command => [\&ExportDataFile, $mw]);
+   #$gen_mb->command(-label=>'PDF...', -command => [\&GenPDF, $mw]);
    $file_mb->command(-label=>'Quit', -command => [\&Exit]);
 
    my $file_mb = $menu_bar->Menubutton(-text=>'Edit')->pack(-side=>'left');
    $file_mb->command(-label=>'Person...', -command => [\&EditPerson, $mw]);
    $file_mb->command(-label=>'Scores...', -command => [\&EditScores, $mw]);
 
-   my $gen_mb = $menu_bar->Menubutton(-text=>'Generate')->pack(-side=>'left');
-   #$gen_mb->command(-label=>'PDF...', -command => [\&GenPDF, $mw]);
-   $gen_mb->command(-label=>'HTML...', -command => [\&GenHTML, $mw]);
-   $gen_mb->command(-label=>'Data Tarball...', -command => [\&GenDataTar, $mw]);
-
    my $date_mb = $menu_bar->Menubutton(-text=>'Date')->pack(-side=>'left');
    $date_mb->command(-label=>'Change Date...', -command => [\&ChangeDate, $mw]);
    $mb_date = $menu_bar->Label(-text=>$date)->pack(-side=>'right');
    $menu_bar->Label(-text=>'Date: ')->pack(-side=>'right');
-   $mb_season = $menu_bar->Label(-text=>$session)->pack(-side=>'right');
+   $mb_session = $menu_bar->Label(-text=>$session)->pack(-side=>'right');
    $menu_bar->Label(-text=>'Session: ')->pack(-side=>'right');
 }
 
