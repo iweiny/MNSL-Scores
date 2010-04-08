@@ -9,17 +9,18 @@ use Tk::BrowseEntry;
 use Tk::DateEntry;
 
 use Generate;
+use MNSLQuery;
 
 $data_dir = "./data";
-$db_dir = "$data_dir/db";
-$shooter_db = "$db_dir/shooters_db";
-$caliber_db = "$db_dir/caliber_db";
-$division_db = "$db_dir/division_db";
-$event_db = "$db_dir/event_db";
-$season_db = "$db_dir/season_db";
+$conf = "$data_dir/scores.conf";
+$db_dir = "$data_dir";
+#$season_db = "$db_dir/season_db";
+
+$dbuser = "";
+$dbpw = "";
 
 $season = ();
-$season_path = ();
+#$season_path = ();
 $date = ();
 
 @shooters = ("");
@@ -36,92 +37,79 @@ sub SelectSeason
 {
    my ($main) = @_;
 
-   # This whole function will have to change for a DB implementation.
-   my $win = $main->FileDialog(-title => 'Chose ', -Create => 0);
-   $win->configure(-Title => "Select Season Directory", -SelDir => 1, -ShowAll => 'yes',
-                  -Path => $data_dir);
-   my $choice = $win->Show();
-   my $suffix = ();
-   ($season, $season_path, $suffix) = fileparse($choice, qr/\.[^.]*/);
-   $mb_season->configure(-text=>"$season");
-   return $season;
+#   # This whole function will have to change for a DB implementation.
+#   my $win = $main->FileDialog(-title => 'Chose ', -Create => 0);
+#   $win->configure(-Title => "Select Season Directory", -SelDir => 1, -ShowAll => 'yes',
+#                  -Path => $data_dir);
+#   my $choice = $win->Show();
+#   my $suffix = ();
+#   ($season, $season_path, $suffix) = fileparse($choice, qr/\.[^.]*/);
+#   $mb_season->configure(-text=>"$season");
+#   return $season;
 }
 
 sub CreateSeason
 {
    my ($main) = @_;
 
-   # This whole function will have to change for a DB implementation.
-   my $win = $main->FileDialog(-title => 'Chose ', -Create => 0);
-   $win->configure(-Title => "Enter New Season Name", -SelDir => 1, -ShowAll => 'yes',
-                  -Path => $data_dir);
-   my $choice = $win->Show();
-   ($season, $season_path, $suffix) = fileparse($choice, qr/\.[^.]*/);
-   $mb_season->configure(-text=>"$season");
-   if (! -d $season_path/$season) {
-      mkdir $season_path/$season;
+#   # This whole function will have to change for a DB implementation.
+#   my $win = $main->FileDialog(-title => 'Chose ', -Create => 0);
+#   $win->configure(-Title => "Enter New Season Name", -SelDir => 1, -ShowAll => 'yes',
+#                  -Path => $data_dir);
+#   my $choice = $win->Show();
+#   ($season, $season_path, $suffix) = fileparse($choice, qr/\.[^.]*/);
+#   $mb_season->configure(-text=>"$season");
+#   if (! -d $season_path/$season) {
+#      mkdir $season_path/$season;
+#   }
+#   return $season;
+}
+
+sub SplitName
+{
+   my ($name) = @_;
+   if ($name =~ /(\S*)[ ]*(.*)/) {
+      my $fname = $1;
+      my $lname = $2;
+      return ($fname, $lname);
    }
-   return $season;
+   die "Failed to split $name\n";
 }
 
 # go through all days files and change the name.
 sub changeName
 {
-   my ($old, $new) = @_;
+   my ($old, $fname, $lname) = @_;
 
-   # "fix" the name in the shooters DB
-   open DB, "<$shooter_db" or die "Could not open DB; $shooter_db\n";
-   open NEW_DB, ">$shooter_db.tmp" or die "Could not open DB; $shooter_db.tmp\n";
-   while (<DB>) {
-      chomp $_;
-      if ($_ eq $old) {
-         print NEW_DB "$new\n";
-      } else {
-         print  NEW_DB"$_\n";
-      }
-   }
-   close (DB);
-   close (NEW_DB);
-   system("mv $shooter_db.tmp $shooter_db");
+   my ($old_fname, $old_lname) = SplitName($old);
 
-   # "fix" the name in the data files
-   opendir ( DIR, "$season_path/$season" ) || die "Error in opening $season_path/$season\n";
-   while( ($filename = readdir(DIR))) {
-      if (($filename ne ".") and ($filename ne "..")) {
-         open NEW_DAY, ">$season_path/$season/$filename.tmp"
-                  or die "failed to open scores file $season_path/$season/$filename.tmp";
-         open DAY, "<$season_path/$season/$filename"
-                  or die "failed to open scores file $season_path/$season/$filename";
-         while (<DAY>) {
-            my ($name, $ev, $div, $cal, $score) = split(/:/, $_);
-            if ($name eq $old) {
-               $name = $new;
-            }
-            print NEW_DAY "$name:$ev:$div:$cal:$score";
-         }
-         close(DAY);
-         close(NEW_DAY);
-         system("mv $season_path/$season/$filename.tmp $season_path/$season/$filename");
-      }
-   }
-   closedir(DIR);
-
+   my $sth = MNSLQuery::query(
+               "select id,fname,lname from shooters where fname='$old_fname' and lname='$old_lname';");
+   my @s = $sth->fetchrow_array;
+   MNSLQuery::query("update shooters set fname='$fname',lname='$lname' where id='$s[0]';");
 }
 
 sub EditName
 {
    my ($main) = @_;
    my $old_name = "";
+   my $fname = "";
+   my $lname = "";
+
    my $dialog = $main->DialogBox(-title => "Change Name", -buttons => ["OK","Cancel"]);
    $dialog->Label(-text => "Change:")->pack(-side=>'left');
    $dialog->MatchEntry(-textvariable => \$old_name, -choices => \@shooters)->pack(-side=>'left');
    $dialog->Label(-text => "to")->pack(-side=>'left');
-   $dialog->Entry(-textvariable => \$new_name)->pack(-side=>'left');
+   $dialog->Label(-text => "First")->pack(-side=>'left');
+   $dialog->Entry(-textvariable => \$fname)->pack(-side=>'left');
+   $dialog->Label(-text => "Last")->pack(-side=>'left');
+   $dialog->Entry(-textvariable => \$lname)->pack(-side=>'left');
+
    my $choice = $dialog->Show();
    if ($choice eq "OK") {
-      print "Changing $old_name to $new_name\n";
-      changeName($old_name, $new_name);
-      LoadDB($shooter_db, \@shooters);
+      print "Changing $old_name to $fname $lname\n";
+      changeName($old_name, $fname, $lname);
+      LoadShooterDB();
       $shooters_entry->choices(\@shooters);
    }
 }
@@ -264,42 +252,64 @@ sub ChangeDate
    $mb_date->configure(-text=>"$date");
 }
 
-sub LoadDB
+sub LoadShooterDB
 {
-   my ($db_file, $arr_ref) = @_;
-
-   if (! -e $db_file) {
-      open FILE, "+>$db_file" or die "Could not open DB \"$db_file\" for creation\n";
-   } else {
-      open FILE, "<$db_file" or die "Could not open DB; $db_file\n";
+   my $sth = MNSLQuery::query("select fname,lname from shooters;");
+   while (my @s = $sth->fetchrow_array) {
+      push (@shooters, "$s[0] $s[1]");
    }
-   while (<FILE>) {
-      chomp $_;
-      push (@$arr_ref, $_);
-   }
-   close (FILE);
 }
 
-sub AddMatchEntry
+sub LoadDBs
 {
-   my ($entry_widget, $new_entry, $db_file, $arr_ref) = @_;
+   LoadShooterDB();
+
+   $sth = MNSLQuery::query("select name from event;");
+   while (my @s = $sth->fetchrow_array) {
+      push (@events, @s);
+   }
+
+   $sth = MNSLQuery::query("select name from division;");
+   while (my @s = $sth->fetchrow_array) {
+      push (@divisions, @s);
+   }
+}
+
+sub AddShooterEntry
+{
+   my ($entry_widget, $new_shooter, $arr_ref) = @_;
 
    # don't add an entry already in the DB
    foreach $i (@$arr_ref) {
-      if ($i eq $new_entry) {
+      if ($i eq $new_shooter) {
          return;
       }
    }
 
-   # add to the file on the fly
-   open FILE, ">>$db_file" or die "Could not open DB; $db_file\n";
-   print FILE "$new_entry\n";
-   close (FILE);
+   my ($fname, $lname) = SplitName($new_shooter);
+   MNSLQuery::query("insert into shooters (fname,lname) values ('$fname', '$lname')");
 
    # and to the array on the fly
-   push(@$arr_ref, $new_entry);
-
+   push(@$arr_ref, "$fname $lname");
    $entry_widget->choices($arr_ref);
+}
+
+sub AddCaliberEntry
+{
+   my ($caliber_entry, $caliber, $arr_ref) = @_;
+
+   # don't add an entry already in the DB
+   foreach $i (@$arr_ref) {
+      if ($i eq $caliber) {
+         return;
+      }
+   }
+
+   MNSLQuery::query("insert into caliber (name) values ('$caliber')");
+
+   # and to the array on the fly
+   push(@$arr_ref, $caliber);
+   $caliber_entry->choices($arr_ref);
 }
 
 sub build_menubar
@@ -349,18 +359,15 @@ sub SaveScore
    print FILE "$shooter:$event:$division:$caliber:$score\n";
    close (FILE);
 
-   AddMatchEntry($shooters_entry, $shooter, $shooter_db, \@shooters);
-   AddMatchEntry($caliber_entry, $caliber, $caliber_db, \@calibers);
+   AddShooterEntry($shooters_entry, $shooter, \@shooters);
+   AddCaliberEntry($caliber_entry, $caliber, \@calibers);
    $shooters_entry->selection('range', 0, 60);
    $shooters_entry->focus();
 }
 
 sub build_main_window
 {
-   LoadDB($shooter_db, \@shooters);
-   LoadDB($division_db, \@divisions);
-   LoadDB($event_db, \@events);
-   LoadDB($caliber_db, \@calibers);
+   LoadDBs();
 
    my $mw = new MainWindow(-title => 'MNSL Scores');
    $mw->title("MNSL Scores");
@@ -415,6 +422,25 @@ if (! -d $db_dir) {
 
 
 # main
+# open DB connection
+open FILE, "<$conf" or die "Could not open config \"$conf\"\n";
+while (<FILE>) {
+   chomp $_;
+   my ($var, $value) = split /:/, $_;
+   if ("$var" eq "db_user") {
+      $dbuser = $value;
+   }
+   if ("$var" eq "db_pw") {
+      $dbpw = $value;
+   }
+   if ("$season" eq "Season") {
+      $dbpw = $value;
+   }
+}
+close (FILE);
+MNSLQuery::connect($dbuser, $dbpw);
+
+
 # Get todays date as a default
 my ($second, $minute, $hour, $dayOfMonth, $month, $yearOffset, $dayOfWeek,
    $dayOfYear, $daylightSavings) = localtime();
