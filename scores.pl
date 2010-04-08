@@ -205,6 +205,7 @@ sub ReadConfig
    open FILE, "<$conf" or die "Could not open config \"$conf\"\n";
    while (<FILE>) {
       chomp $_;
+      $_ =~ s/\s+//;
       my ($var, $value) = split /:/, $_;
       if ("$var" eq "db_user") {
          $dbuser = $value;
@@ -212,11 +213,12 @@ sub ReadConfig
       if ("$var" eq "db_pw") {
          $dbpw = $value;
       }
-      if ("$session" eq "session") {
-         $dbpw = $value;
+      if ("$var" eq "session") {
+         $session = $value;
       }
    }
    close (FILE);
+print "$dbuser $dbpw $session\n";
 
    # Get todays date as a default
    my ($second, $minute, $hour, $dayOfMonth, $month, $yearOffset, $dayOfWeek,
@@ -229,9 +231,9 @@ sub ReadConfig
 sub WriteConfig
 {
    open FILE, "+>$conf" or die "Could not write config \"$conf\"\n";
-   print FILE "db_user:$dbuser\n";
-   print FILE "db_pw:$dbpw\n";
-   print FILE "session:$session\n";
+   print FILE "db_user: $dbuser\n";
+   print FILE "db_pw:   $dbpw\n";
+   print FILE "session: $session\n";
    close (FILE);
 }
 
@@ -340,9 +342,9 @@ sub build_menubar
    my $date_mb = $menu_bar->Menubutton(-text=>'Date')->pack(-side=>'left');
    $date_mb->command(-label=>'Change Date...', -command => [\&ChangeDate, $mw]);
    $mb_date = $menu_bar->Label(-text=>$date)->pack(-side=>'right');
-   $menu_bar->Label(-text=>'Day: ')->pack(-side=>'right');
-   $mb_season = $menu_bar->Label(-text=>$season)->pack(-side=>'right');
-   $menu_bar->Label(-text=>'Season: ')->pack(-side=>'right');
+   $menu_bar->Label(-text=>'Date: ')->pack(-side=>'right');
+   $mb_season = $menu_bar->Label(-text=>$session)->pack(-side=>'right');
+   $menu_bar->Label(-text=>'Session: ')->pack(-side=>'right');
 }
 
 my $shooter = "";
