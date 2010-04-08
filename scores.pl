@@ -134,7 +134,69 @@ sub EditScores
    $win->MatchEntry(-textvariable => \$name, -choices => \@shooters)->pack(-side=>'left');
    my $choice = $win->Show();
    if ($choice eq "OK") {
-      print "Changing scores for $name on $date\n";
+      # read scores for that day and shooter
+
+      # build dialog with those scores which can be editied.
+      my $win = $main->DialogBox(-title => "Change scores for $name ($date)", -buttons => ["OK","Cancel"]);
+      my $main_frame = $win->Frame->pack(-side=>'bottom', -fill=>'x');
+
+      my $print_frame = $main_frame->Frame->pack(-side=>'top', -fill=>'x');
+      $print_frame->Label(-text => "Event")->grid(
+                     $print_frame->Label(-text => "Division"),
+                     $print_frame->Label(-text => "Caliber"),
+                     $print_frame->Label(-text => "Score"),
+                      -sticky => "nsew");
+
+      # arrays to hold the values for the options
+      my @ev_ary = ();
+      my @div_ary = ();
+      my @cal_ary = ();
+      my @score_ary = ();
+
+      my $event;
+      my $division;
+      # foreach my $score (@scores) {
+         $ev_ary[0] = "Tyro";
+         $event = $print_frame->Optionmenu(-options => \@events,
+                                       -variable => \$ev_ary[0]),
+         $div_ary[0] = "Prod";
+         $division = $print_frame->Optionmenu(-options => \@divisions,
+                                       -variable => \$div_ary[0]),
+         $cal_ary[0] = ".45";
+         $caliber_entry = $print_frame->MatchEntry(-choices => \@calibers,
+                                       -textvariable => \$cal_ary[0]);
+
+         $score_ary[0] = "465";
+         $event->grid(
+                  $division,
+                  $caliber_entry,
+                  $print_frame->Entry(-textvariable => \$score_ary[0]),
+                  -sticky => "nsew");
+
+         $ev_ary[1] = "PPC";
+         $event = $print_frame->Optionmenu(-options => \@events,
+                                       -variable => \$ev_ary[1]),
+         $div_ary[1] = "22";
+         $division = $print_frame->Optionmenu(-options => \@divisions,
+                                       -variable => \$div_ary[1]),
+         $cal_ary[1] = ".22";
+         $caliber_entry = $print_frame->MatchEntry(-choices => \@calibers,
+                                       -textvariable => \$cal_ary[1]);
+
+         $score_ary[1] = "470";
+         $event->grid(
+                  $division,
+                  $caliber_entry,
+                  $print_frame->Entry(-textvariable => \$score_ary[1]),
+                  -sticky => "nsew");
+      #}
+
+      my $choice = $win->Show();
+      if ($choice eq "OK") {
+         print "Changing scores for $name on $date\n";
+         print "$ev_ary[0]:$div_ary[0]:$cal_ary[0]:$score_ary[0]\n";
+         print "$ev_ary[1]:$div_ary[1]:$cal_ary[1]:$score_ary[1]\n";
+      }
    }
 }
 
