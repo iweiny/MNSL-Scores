@@ -11,58 +11,31 @@ use Tk::DateEntry;
 use Generate;
 use MNSLQuery;
 
-$data_dir = "./data";
-$conf = "$data_dir/scores.conf";
-$db_dir = "$data_dir";
-#$season_db = "$db_dir/season_db";
+$conf = "./data/scores.conf";
 
+# configuration vars
 $dbuser = "";
 $dbpw = "";
-
-$season = ();
-#$season_path = ();
+$session = ();
 $date = ();
 
+# Vars for UI
 @shooters = ("");
+$shooters_entry = undef;
 @divisions = ();
 @calibers = ();
-@events = ();
-
-$shooters_entry = undef;
 $caliber_entry = undef;
+@events = ();
+# In the MenuBar
 $mb_date = undef;
 $mb_season = undef;
 
-sub SelectSeason
+sub ChangeSession
 {
    my ($main) = @_;
-
-#   # This whole function will have to change for a DB implementation.
-#   my $win = $main->FileDialog(-title => 'Chose ', -Create => 0);
-#   $win->configure(-Title => "Select Season Directory", -SelDir => 1, -ShowAll => 'yes',
-#                  -Path => $data_dir);
-#   my $choice = $win->Show();
-#   my $suffix = ();
-#   ($season, $season_path, $suffix) = fileparse($choice, qr/\.[^.]*/);
-#   $mb_season->configure(-text=>"$season");
-#   return $season;
-}
-
-sub CreateSeason
-{
-   my ($main) = @_;
-
-#   # This whole function will have to change for a DB implementation.
-#   my $win = $main->FileDialog(-title => 'Chose ', -Create => 0);
-#   $win->configure(-Title => "Enter New Season Name", -SelDir => 1, -ShowAll => 'yes',
-#                  -Path => $data_dir);
-#   my $choice = $win->Show();
-#   ($season, $season_path, $suffix) = fileparse($choice, qr/\.[^.]*/);
-#   $mb_season->configure(-text=>"$season");
-#   if (! -d $season_path/$season) {
-#      mkdir $season_path/$season;
-#   }
-#   return $season;
+   my $dialog = $main->DialogBox(-title => "Change Session", -buttons => ["OK","Cancel"]);
+   $dialog->Label(-text => "Enter Session number:")->pack(-side=>'left');
+   $dialog->Entry(-textvariable => \$session)->pack(-side=>'left');
 }
 
 sub SplitName
@@ -76,20 +49,19 @@ sub SplitName
    die "Failed to split $name\n";
 }
 
-# go through all days files and change the name.
-sub changeName
+sub UpdateShooter
 {
    my ($old, $fname, $lname) = @_;
 
    my ($old_fname, $old_lname) = SplitName($old);
 
    my $sth = MNSLQuery::query(
-               "select id,fname,lname from shooters where fname='$old_fname' and lname='$old_lname';");
+            "select id,fname,lname from shooters where fname='$old_fname' and lname='$old_lname';");
    my @s = $sth->fetchrow_array;
    MNSLQuery::query("update shooters set fname='$fname',lname='$lname' where id='$s[0]';");
 }
 
-sub EditName
+sub EditPerson
 {
    my ($main) = @_;
    my $old_name = "";
@@ -97,9 +69,12 @@ sub EditName
    my $lname = "";
 
    my $dialog = $main->DialogBox(-title => "Change Name", -buttons => ["OK","Cancel"]);
-   $dialog->Label(-text => "Change:")->pack(-side=>'left');
-   $dialog->MatchEntry(-textvariable => \$old_name, -choices => \@shooters)->pack(-side=>'left');
-   $dialog->Label(-text => "to")->pack(-side=>'left');
+
+   my $topframe = $dialog->Frame()->pack(-side=>'top');
+   $topframe->Label(-text => "Change:")->pack(-side=>'left');
+   $topframe->MatchEntry(-textvariable => \$old_name, -choices => \@shooters)->pack(-side=>'left');
+   $topframe->Label(-text => "to")->pack(-side=>'left');
+
    $dialog->Label(-text => "First")->pack(-side=>'left');
    $dialog->Entry(-textvariable => \$fname)->pack(-side=>'left');
    $dialog->Label(-text => "Last")->pack(-side=>'left');
@@ -107,10 +82,9 @@ sub EditName
 
    my $choice = $dialog->Show();
    if ($choice eq "OK") {
-      print "Changing $old_name to $fname $lname\n";
-      changeName($old_name, $fname, $lname);
-      LoadShooterDB();
-      $shooters_entry->choices(\@shooters);
+      print "Updating $old_name to: $fname $lname\n";
+      UpdateShooter($old_name, $fname, $lname);
+      UpdateShooterList();
    }
 }
 
@@ -209,35 +183,61 @@ sub showGenComplete
 #sub GenPDF
 #{
 #   my ($main) = @_;
-#   Generate::PDF($season, $season_path);
+#   Generate::PDF($session, $season_path);
 #   showGenComplete("pdf", $main);
 #}
 
 sub GenHTML
 {
    my ($main) = @_;
-   Generate::HTML($season, $season_path);
+   Generate::HTML($session);
    showGenComplete("html", $main);
 }
 
-sub GenDataTar
+sub GenDataBackup
 {
    my ($main) = @_;
-   Generate::DataTar($season, $season_path);
-   showGenComplete("Data Tarball", $main);
+   showGenComplete("Data Backup", $main);
 }
 
-sub WriteSeasonConfig
+sub ReadConfig
 {
-   open FILE, "+>$season_db" or die "Could not open config \"$season_db\"\n";
-   print FILE "$season\n";
-   print FILE "$season_path\n";
+   open FILE, "<$conf" or die "Could not open config \"$conf\"\n";
+   while (<FILE>) {
+      chomp $_;
+      my ($var, $value) = split /:/, $_;
+      if ("$var" eq "db_user") {
+         $dbuser = $value;
+      }
+      if ("$var" eq "db_pw") {
+         $dbpw = $value;
+      }
+      if ("$session" eq "session") {
+         $dbpw = $value;
+      }
+   }
+   close (FILE);
+
+   # Get todays date as a default
+   my ($second, $minute, $hour, $dayOfMonth, $month, $yearOffset, $dayOfWeek,
+      $dayOfYear, $daylightSavings) = localtime();
+   my $year = 1900 + $yearOffset;
+   my $month = 1 + $month;
+   $date = sprintf("%04d-%02d-%02d", $year, $month, $dayOfMonth);
+}
+
+sub WriteConfig
+{
+   open FILE, "+>$conf" or die "Could not write config \"$conf\"\n";
+   print FILE "db_user:$dbuser\n";
+   print FILE "db_pw:$dbpw\n";
+   print FILE "session:$session\n";
    close (FILE);
 }
 
 sub Exit
 {
-   WriteSeasonConfig();
+   WriteConfig();
    exit;
 }
 
@@ -275,12 +275,19 @@ sub LoadDBs
    }
 }
 
+sub UpdateShooterList
+{
+   @shooters = (); # clear
+   LoadShooterDB(); # load
+   $shooters_entry->choices(\@shooters);
+}
+
 sub AddShooterEntry
 {
-   my ($entry_widget, $new_shooter, $arr_ref) = @_;
+   my ($new_shooter) = @_;
 
    # don't add an entry already in the DB
-   foreach $i (@$arr_ref) {
+   foreach $i (@shooters) {
       if ($i eq $new_shooter) {
          return;
       }
@@ -289,9 +296,7 @@ sub AddShooterEntry
    my ($fname, $lname) = SplitName($new_shooter);
    MNSLQuery::query("insert into shooters (fname,lname) values ('$fname', '$lname')");
 
-   # and to the array on the fly
-   push(@$arr_ref, "$fname $lname");
-   $entry_widget->choices($arr_ref);
+   UpdateShooterList();
 }
 
 sub AddCaliberEntry
@@ -320,12 +325,11 @@ sub build_menubar
 
    # File
    my $file_mb = $menu_bar->Menubutton(-text=>'File')->pack(-side=>'left');
-   $file_mb->command(-label=>'Select Season...', -command => [\&SelectSeason, $mw]);
-   $file_mb->command(-label=>'Create Season...', -command => [\&CreateSeason, $mw]);
+   $file_mb->command(-label=>'Change Session...', -command => [\&SelectSeason, $mw]);
    $file_mb->command(-label=>'Quit', -command => [\&Exit]);
 
    my $file_mb = $menu_bar->Menubutton(-text=>'Edit')->pack(-side=>'left');
-   $file_mb->command(-label=>'Name...', -command => [\&EditName, $mw]);
+   $file_mb->command(-label=>'Person...', -command => [\&EditPerson, $mw]);
    $file_mb->command(-label=>'Scores...', -command => [\&EditScores, $mw]);
 
    my $gen_mb = $menu_bar->Menubutton(-text=>'Generate')->pack(-side=>'left');
@@ -355,11 +359,11 @@ sub SaveScore
 
    printf("Saving Score; $shooter $event $division $caliber $score => $date\n");
 
-   open FILE, ">>$season_path/$season/$date" or die "Could not open DB; $season_path/$season/$date\n";
-   print FILE "$shooter:$event:$division:$caliber:$score\n";
-   close (FILE);
+   #open FILE, ">>$season_path/$season/$date" or die "Could not open DB; $season_path/$season/$date\n";
+   #print FILE "$shooter:$event:$division:$caliber:$score\n";
+   #close (FILE);
 
-   AddShooterEntry($shooters_entry, $shooter, \@shooters);
+   AddShooterEntry($shooter);
    AddCaliberEntry($caliber_entry, $caliber, \@calibers);
    $shooters_entry->selection('range', 0, 60);
    $shooters_entry->focus();
@@ -374,9 +378,7 @@ sub build_main_window
 
    build_menubar($mw);
    
-   my $main_frame = $mw->Frame->pack(-side=>'bottom', -fill=>'x');
-
-   my $print_frame = $main_frame->Frame->pack(-side=>'top', -fill=>'x');
+   my $print_frame = $mw->Frame->pack(-side=>'bottom', -fill=>'x');
    $print_frame->Label(-text => "Shooter")->grid(
                      $print_frame->Label(-text => "Event"),
                      $print_frame->Label(-text => "Division"),
@@ -409,54 +411,13 @@ sub build_main_window
    $mw{left} = int(($sw - $mw{width})/8);
    $mw{top} = int(($sh - $mw{height})/8);
    $mw->geometry("+".$mw{left}."+".$mw{top});
-   $mw->resizable(0,0);
+   $mw->resizable(1,0);
 }
-
-
-if (! -d $data_dir) {
-   mkdir $data_dir
-}
-if (! -d $db_dir) {
-   mkdir $db_dir
-}
-
 
 # main
+ReadConfig();
 # open DB connection
-open FILE, "<$conf" or die "Could not open config \"$conf\"\n";
-while (<FILE>) {
-   chomp $_;
-   my ($var, $value) = split /:/, $_;
-   if ("$var" eq "db_user") {
-      $dbuser = $value;
-   }
-   if ("$var" eq "db_pw") {
-      $dbpw = $value;
-   }
-   if ("$season" eq "Season") {
-      $dbpw = $value;
-   }
-}
-close (FILE);
 MNSLQuery::connect($dbuser, $dbpw);
-
-
-# Get todays date as a default
-my ($second, $minute, $hour, $dayOfMonth, $month, $yearOffset, $dayOfWeek,
-   $dayOfYear, $daylightSavings) = localtime();
-my $year = 1900 + $yearOffset;
-my $month = 1 + $month;
-$date = sprintf("%04d-%02d-%02d", $year, $month, $dayOfMonth);
-
-# Open last season used
-if (-e $season_db) {
-   open FILE, "<$season_db" or die "Could not open config \"$season_db\"\n";
-   $season = <FILE>;
-   chomp $season;
-   $season_path = <FILE>;
-   chomp $season_path;
-   close(FILE);
-}
 
 build_main_window;
 MainLoop;
