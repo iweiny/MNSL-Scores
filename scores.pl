@@ -35,11 +35,12 @@ $mb_season = undef;
 sub SelectSeason
 {
    my ($main) = @_;
+
+   # This whole function will have to change for a DB implementation.
    my $win = $main->FileDialog(-title => 'Chose ', -Create => 0);
    $win->configure(-Title => "Select Season Directory", -SelDir => 1, -ShowAll => 'yes',
                   -Path => $data_dir);
    my $choice = $win->Show();
-
    my $suffix = ();
    ($season, $season_path, $suffix) = fileparse($choice, qr/\.[^.]*/);
    $mb_season->configure(-text=>"$season");
@@ -49,11 +50,12 @@ sub SelectSeason
 sub CreateSeason
 {
    my ($main) = @_;
+
+   # This whole function will have to change for a DB implementation.
    my $win = $main->FileDialog(-title => 'Chose ', -Create => 0);
    $win->configure(-Title => "Enter New Season Name", -SelDir => 1, -ShowAll => 'yes',
                   -Path => $data_dir);
    my $choice = $win->Show();
-
    ($season, $season_path, $suffix) = fileparse($choice, qr/\.[^.]*/);
    $mb_season->configure(-text=>"$season");
    if (! -d $season_path/$season) {
@@ -237,12 +239,17 @@ sub GenDataTar
    showGenComplete("Data Tarball", $main);
 }
 
-sub Exit
+sub WriteSeasonConfig
 {
    open FILE, "+>$season_db" or die "Could not open config \"$season_db\"\n";
    print FILE "$season\n";
    print FILE "$season_path\n";
    close (FILE);
+}
+
+sub Exit
+{
+   WriteSeasonConfig();
    exit;
 }
 
