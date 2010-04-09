@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 use File::Basename;
+use Cwd 'abs_path';
 
 use Tk;
 use Tk::MatchEntry;
@@ -8,16 +9,19 @@ use Tk::FileDialog;
 use Tk::BrowseEntry;
 use Tk::DateEntry;
 
+
 use Generate;
 use MNSLQuery;
 
-$conf = "./data/scores.conf";
 
 # configuration vars
 $dbuser = "";
 $dbpw = "";
 $session = ();
+$session_st = ();
 $date = ();
+$basedir = dirname(abs_path($0));
+$conf = "$basedir/scores.conf";
 
 # Vars for UI
 @shooters = ("");
@@ -30,7 +34,39 @@ $caliber_entry = undef;
 $mb_date = undef;
 $mb_session = undef;
 
-sub ChangeSession
+sub InvalidSession
+{
+   my ($s) = @_;
+   my $sth = MNSLQuery::query("select id,sdate from league where lnum='$s';");
+   my @s = $sth->fetchrow_array;
+   if (scalar @s > 0) {
+      $session_st = $s[1];
+   }
+   return (scalar @s < 1);
+}
+
+sub CreateSession
+{
+   my ($s, $d) = @_;
+   MNSLQuery::query("insert into league (lnum, sdate) values ($s, '$d');");
+}
+
+sub AddSession
+{
+   my ($main, $s) = @_;
+   my $sd;
+   my $dialog = $main->DialogBox(-title => "New Session $s", -buttons => ["OK","Cancel"]);
+   $dialog->Label(-text => "Enter Start Date for Session $s")->pack(-side=>'top');
+   $dialog->DateEntry(-textvariable =>\$sd, -dateformat=>4)->pack(-side=>'bottom');
+   $choice = $dialog->Show();
+   if ($choice eq "OK") {
+      CreateSession($s, $sd);
+      return (1);
+   }
+   return (0);
+}
+
+sub ChooseSession
 {
    my ($main) = @_;
    my $s;
@@ -39,6 +75,11 @@ sub ChangeSession
    $dialog->Entry(-textvariable => \$s)->pack(-side=>'left');
    $choice = $dialog->Show();
    if ($choice eq "OK") {
+      if (InvalidSession($s)) {
+         if (!AddSession($main, $s)) {
+            return;
+         }
+      }
       $session = $s;
       $mb_session->configure(-text=>"$session");
    }
@@ -230,7 +271,9 @@ sub ReadConfig
       }
    }
    close (FILE);
-print "$dbuser $dbpw $session\n";
+   if ("$dbuser" eq "") {
+      die "Failed to retrieve database user from config: $conf\n";
+   }
 
    # Get todays date as a default
    my ($second, $minute, $hour, $dayOfMonth, $month, $yearOffset, $dayOfWeek,
@@ -292,6 +335,11 @@ sub LoadDBs
    while (my @s = $sth->fetchrow_array) {
       push (@divisions, @s);
    }
+
+   $sth = MNSLQuery::query("select name from caliber;");
+   while (my @s = $sth->fetchrow_array) {
+      push (@calibers, @s);
+   }
 }
 
 sub UpdateShooterList
@@ -320,10 +368,10 @@ sub AddShooterEntry
 
 sub AddCaliberEntry
 {
-   my ($caliber_entry, $caliber, $arr_ref) = @_;
+   my ($caliber) = @_;
 
    # don't add an entry already in the DB
-   foreach $i (@$arr_ref) {
+   foreach $i (@calibers) {
       if ($i eq $caliber) {
          return;
       }
@@ -332,8 +380,8 @@ sub AddCaliberEntry
    MNSLQuery::query("insert into caliber (name) values ('$caliber')");
 
    # and to the array on the fly
-   push(@$arr_ref, $caliber);
-   $caliber_entry->choices($arr_ref);
+   push(@calibers, $caliber);
+   $caliber_entry->choices(\@calibers);
 }
 
 sub build_menubar
@@ -342,9 +390,9 @@ sub build_menubar
    my $menu_bar = $mw->Frame(-relief =>'groove', -borderwidth=>3)
                            ->pack(-side=>'top', -fill=>'x');
 
-   # File
+   # Left side
    my $file_mb = $menu_bar->Menubutton(-text=>'File')->pack(-side=>'left');
-   $file_mb->command(-label=>'Change Session...', -command => [\&ChangeSession, $mw]);
+   $file_mb->command(-label=>'Choose Session...', -command => [\&ChooseSession, $mw]);
    $file_mb->command(-label=>'Generate HTML...', -command => [\&GenHTML, $mw]);
    $file_mb->command(-label=>'Export Data File...', -command => [\&ExportDataFile, $mw]);
    #$gen_mb->command(-label=>'PDF...', -command => [\&GenPDF, $mw]);
@@ -356,10 +404,14 @@ sub build_menubar
 
    my $date_mb = $menu_bar->Menubutton(-text=>'Date')->pack(-side=>'left');
    $date_mb->command(-label=>'Change Date...', -command => [\&ChangeDate, $mw]);
-   $mb_date = $menu_bar->Label(-text=>$date)->pack(-side=>'right');
-   $menu_bar->Label(-text=>'Date: ')->pack(-side=>'right');
+
+   # Right side
+   $mb_session_st = $menu_bar->Label(-text=>$session_st)->pack(-side=>'right');
+   $menu_bar->Label(-text=>'started on ')->pack(-side=>'right');
    $mb_session = $menu_bar->Label(-text=>$session)->pack(-side=>'right');
    $menu_bar->Label(-text=>'Session: ')->pack(-side=>'right');
+   $mb_date = $menu_bar->Label(-text=>$date)->pack(-side=>'right');
+   $menu_bar->Label(-text=>'Today: ')->pack(-side=>'right');
 }
 
 my $shooter = "";
@@ -374,14 +426,26 @@ sub SaveScore
    $caliber =~ s/:/;/g;
    $score =~ s/:/;/g;
 
-   printf("Saving Score; $shooter $event $division $caliber $score => $date\n");
+   printf("Saving Score; $session $date $shooter $event $division $caliber $score\n");
 
-   #open FILE, ">>$season_path/$season/$date" or die "Could not open DB; $season_path/$season/$date\n";
-   #print FILE "$shooter:$event:$division:$caliber:$score\n";
-   #close (FILE);
+   my ($fname, $lname) = SplitName($shooter);
+
+   my $sth = MNSLQuery::query("select id from shooters where fname='$fname' and lname='$lname';");
+   my @res = $sth->fetchrow_array;
+   my $sid = $res[0];
+   $sth = MNSLQuery::query("select id from event where name='$event';");
+   my @res = $sth->fetchrow_array;
+   my $eid = $res[0];
+   $sth = MNSLQuery::query("select id from division where name='$division';");
+   my @res = $sth->fetchrow_array;
+   my $did = $res[0];
+
+   $sth = MNSLQuery::query(
+         "insert into scores (dte, leaguenum, score, shooterid, eid, did, cal)".
+                 "values ('$date', $session, $score, $sid, $eid, $did, $caliber);");
 
    AddShooterEntry($shooter);
-   AddCaliberEntry($caliber_entry, $caliber, \@calibers);
+   AddCaliberEntry($caliber, \@calibers);
    $shooters_entry->selection('range', 0, 60);
    $shooters_entry->focus();
 }
@@ -392,6 +456,12 @@ sub build_main_window
 
    my $mw = new MainWindow(-title => 'MNSL Scores');
    $mw->title("MNSL Scores");
+
+   if (InvalidSession($session)) {
+      if (!AddSession($mw, $session)) {
+         die "ERROR: invalid session in config file\n";
+      }
+   }
 
    build_menubar($mw);
    
