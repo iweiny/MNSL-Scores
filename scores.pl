@@ -226,6 +226,15 @@ sub showGenComplete
    $win->Show;
 }
 
+sub GetStartDate
+{
+   my ($s) = @_;
+   my $sth = MNSLQuery::query("select sdate from league where lnum='$s';");
+   my @res = $sth->fetchrow_array;
+   if (scalar @res < 1) { die "Invalid session detected\n"; }
+   return ($res[0]);
+}
+
 # Leave this for another day
 #sub GenPDF
 #{
@@ -237,7 +246,16 @@ sub showGenComplete
 sub GenHTML
 {
    my ($main) = @_;
-   Generate::HTML($session);
+
+   my $sdate = GetStartDate($session);
+   my $file = "Session$session-$sdate.html";
+
+#   my $win = $main->FileDialog(-title => 'Export Data File', -Create => 0);
+#   $win->configure(-Title => "Select File", -SelDir => 1, -ShowAll => 'yes',
+#                  -Path => $data_dir);
+#   my $choice = $win->Show();
+
+   Generate::HTML($file, $session, $sdate);
    showGenComplete("html", $main);
 }
 

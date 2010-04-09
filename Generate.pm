@@ -93,15 +93,6 @@ sub write_html_footer
    print $file "</html>\n";
 }
 
-sub GetStartDate
-{
-   my ($s) = @_;
-   my $sth = MNSLQuery::query("select sdate from league where lnum='$s';");
-   my @res = $sth->fetchrow_array;
-   if (scalar @res < 1) { die "Invalid session detected\n"; }
-   return ($res[0]);
-}
-
 sub ConvertDateHR
 {
    my ($date) = @_;
@@ -117,26 +108,49 @@ sub ConvertDateHR
    return ("$mon $day, $year");
 }
 
+sub GetColAsArray
+{
+   my ($q) = @_;
+   my $sth = MNSLQuery::query($q);
+   my @rc;
+   while (my @res = $sth->fetchrow_array) {
+      push (@rc, @res);
+   }
+   return (@rc);
+}
+
 sub GetDates
 {
    my ($s) = @_;
-   my $sth = MNSLQuery::query("select distinct dte from scores where ".
-                  "leaguenum='$s' order by dte;");
-   my @dates;
-   while (my @res = $sth->fetchrow_array) {
-      push (@dates, @res);
-   }
-   return (@dates);
+   return (GetColAsArray("select distinct dte from scores where ".
+                  "leaguenum='$s' order by dte;"));
 }
+
+sub GetShooters
+{
+   my ($s) = @_;
+   return (GetColAsArray("select distinct sh.id from shooters as sh, ".
+                  "scores as s where s.shooterid=sh.id and leaguenum='$s';"));
+}
+
+sub GetEids
+{
+   my ($s) = @_;
+   return (GetColAsArray("select id from event;"));
+}
+sub GetDids
+{
+   my ($s) = @_;
+   return (GetColAsArray("select id from division;"));
+}
+
 
 #
 # HTML($session)
 # season == directory to generate file for.
 sub HTML
 {
-   my ($session) = @_;
-   my $sdate = GetStartDate($session);
-   my $html = "$tmp/Session$session-$sdate.html";
+   my ($html, $session, $sdate) = @_;
 
    open HTML_FILE, ">$html" or die "could not open $html";
    write_html_header(\*HTML_FILE, $session, $sdate);
@@ -156,7 +170,7 @@ sub HTML
    print HTML_FILE "<table>\n";
    print HTML_FILE "<tr>\n";
    foreach my $date (@dates) {
-         $hrdate = ConvertDateHR($date);
+         my $hrdate = ConvertDateHR($date);
          # print the header for this
          print HTML_FILE "<td><a href=\"#$date\">$hrdate</a></td>\n";
    }
