@@ -81,7 +81,8 @@ sub ChooseSession
          }
       }
       $session = $s;
-      $mb_session->configure(-text=>"$session");
+      my $title = "MNSL Scores -- Session $session ($session_st)";
+      $main->title("$title");
    }
 }
 
@@ -235,14 +236,6 @@ sub GetStartDate
    return ($res[0]);
 }
 
-# Leave this for another day
-#sub GenPDF
-#{
-#   my ($main) = @_;
-#   Generate::PDF($session, $season_path);
-#   showGenComplete("pdf", $main);
-#}
-
 sub GenHTML
 {
    my ($main) = @_;
@@ -256,7 +249,14 @@ sub GenHTML
 #   my $choice = $win->Show();
 
    Generate::HTML($file, $session, $sdate);
-   showGenComplete("html", $main);
+
+   my $win = $main->DialogBox(-title => "Generate HTML Complete",
+                  -buttons => ['OK', 'View in Firefox']);
+   $win->Label(-text => "Generate HTML Complete\n")->pack;
+   my $choice = $win->Show;
+   if ($choice eq 'View in Firefox') {
+      system("firefox $file&");
+   }
 }
 
 sub ExportDataFile
@@ -413,7 +413,6 @@ sub build_menubar
    $file_mb->command(-label=>'Choose Session...', -command => [\&ChooseSession, $mw]);
    $file_mb->command(-label=>'Generate HTML...', -command => [\&GenHTML, $mw]);
    $file_mb->command(-label=>'Export Data File...', -command => [\&ExportDataFile, $mw]);
-   #$gen_mb->command(-label=>'PDF...', -command => [\&GenPDF, $mw]);
    $file_mb->command(-label=>'Quit', -command => [\&Exit]);
 
    my $file_mb = $menu_bar->Menubutton(-text=>'Edit')->pack(-side=>'left');
@@ -423,13 +422,8 @@ sub build_menubar
    my $date_mb = $menu_bar->Menubutton(-text=>'Date')->pack(-side=>'left');
    $date_mb->command(-label=>'Change Date...', -command => [\&ChangeDate, $mw]);
 
-   # Right side
-   $mb_session_st = $menu_bar->Label(-text=>$session_st)->pack(-side=>'right');
-   $menu_bar->Label(-text=>'started on ')->pack(-side=>'right');
-   $mb_session = $menu_bar->Label(-text=>$session)->pack(-side=>'right');
-   $menu_bar->Label(-text=>'Session: ')->pack(-side=>'right');
    $mb_date = $menu_bar->Label(-text=>$date)->pack(-side=>'right');
-   $menu_bar->Label(-text=>'Today: ')->pack(-side=>'right');
+   $menu_bar->Label(-text=>'Score Date: ')->pack(-side=>'right');
 }
 
 my $shooter = "";
@@ -460,7 +454,7 @@ sub SaveScore
 
    $sth = MNSLQuery::query(
          "insert into scores (dte, leaguenum, score, shooterid, eid, did, cal)".
-                 "values ('$date', $session, $score, $sid, $eid, $did, $caliber);");
+                 "values ('$date', $session, $score, $sid, $eid, $did, '$caliber');");
 
    AddShooterEntry($shooter);
    AddCaliberEntry($caliber, \@calibers);
@@ -472,8 +466,8 @@ sub build_main_window
 {
    LoadDBs();
 
-   my $mw = new MainWindow(-title => 'MNSL Scores');
-   $mw->title("MNSL Scores");
+   my $title = "MNSL Scores -- Session $session ($session_st)";
+   my $mw = new MainWindow(-title => $title);
 
    if (InvalidSession($session)) {
       if (!AddSession($mw, $session)) {
@@ -523,6 +517,13 @@ sub build_main_window
 ReadConfig();
 # open DB connection
 MNSLQuery::connect($dbuser, $dbpw);
+
+my $sth = MNSLQuery::query("select sdate from league ".
+               "where lnum='$session';");
+my @res = $sth->fetchrow_array;
+$session_st = $res[0];
+print "$session_st\n";
+
 
 build_main_window;
 MainLoop;
