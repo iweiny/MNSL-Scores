@@ -12,14 +12,26 @@ my @month_names = ("", "January", "Febuary", "March", "April", "May", "June",
                   "July", "August", "September", "October", "November", "December");
 
 
+
 sub write_html_header
 {
    my ($file, $session, $sdate) = @_;
    my $hrdate = ConvertDateHR($sdate);
+
+   my $cssstring = open(MYDATA, "css");
+   print $file "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\n";   
    print $file "<html>\n";
+   print $file "<head>\n";
+   #Steggy added - read style file and print in head of HTML
+   open(MYDATA ,"css") or die ("Error: cannot open file 'css'\n");
+   my @lines = <MYDATA>;
+   print $file "@lines";
+   close MYDATA;
+   print $file "</head>\n";
    print $file "<title>MNSL Scores -- Season $session (Started: $hrdate); </title>\n";
    print $file "<body>\n";
-   print $file "<h1>MNSL Scores -- Season $session (Started: $hrdate)</h1>\n";
+   print $file "<a name=top>\n";  
+   print $file "<div class=pageheader>MNSL Scores -- Season $session (Started: $hrdate)</div>\n";
 }
 
 sub write_html_footer
@@ -176,22 +188,22 @@ sub HTML
 
          if (HaveScoresForEvDiv($eid, $did, $session)) {
             print HTML_FILE "<h3>$event -- $division</h3>\n";
-            print HTML_FILE "<table cellpadding='5' border='1'>\n";
+            print HTML_FILE "<table>\n";
             print HTML_FILE "<tr>\n";
-            print HTML_FILE "<th>Name</th>\n";
-            print HTML_FILE "<th>1</th>\n";
-            print HTML_FILE "<th>2</th>\n";
-            print HTML_FILE "<th>3</th>\n";
-            print HTML_FILE "<th>4</th>\n";
-            print HTML_FILE "<th>5</th>\n";
-            print HTML_FILE "<th>6</th>\n";
-            print HTML_FILE "<th>7</th>\n";
-            print HTML_FILE "<th>8</th>\n";
-            print HTML_FILE "<th>9</th>\n";
-            print HTML_FILE "<th>10</th>\n";
-            print HTML_FILE "<th>Avg</th>\n";
-            print HTML_FILE "<th>Min 1</th>\n";
-            print HTML_FILE "<th>Min 2</th>\n";
+            print HTML_FILE "<th class=sname>Name</th>\n";
+            print HTML_FILE "<th class=scorenum>1</th>\n";
+            print HTML_FILE "<th class=scorenum>2</th>\n";
+            print HTML_FILE "<th class=scorenum>3</th>\n";
+            print HTML_FILE "<th class=scorenum>4</th>\n";
+            print HTML_FILE "<th class=scorenum>5</th>\n";
+            print HTML_FILE "<th class=scorenum>6</th>\n";
+            print HTML_FILE "<th class=scorenum>7</th>\n";
+            print HTML_FILE "<th class=scorenum>8</th>\n";
+            print HTML_FILE "<th class=scorenum>9</th>\n";
+            print HTML_FILE "<th class=scorenum>10</th>\n";
+            print HTML_FILE "<th class=scoreavg>Avg</th>\n";
+            print HTML_FILE "<th class=scoreminmax>Min 1</th>\n";
+            print HTML_FILE "<th class=scoreminmax>Min 2</th>\n";
             print HTML_FILE "</tr>\n";
          } else {
             next;
@@ -213,7 +225,7 @@ sub HTML
                   print HTML_FILE "<tr><td>$name</td>";
                }
 
-               print HTML_FILE "<td>$score</td>";
+               print HTML_FILE "<td class=cl>$score</td>";
 
                if ($score < $min2) {
                   if ($score < $min1) {
@@ -231,8 +243,8 @@ sub HTML
                   $avg -= $min2;
                   $avg /= 8;
                   # end this row with an avg
-                  printf HTML_FILE "<td>%03.02f</td><td>%d</td>".
-                                 "<td>%d</td></tr>\n", $avg,$min1,$min2;
+                  printf HTML_FILE "<td class=cl>%03.02f</td><td class=cl>%d</td>".
+                                 "<td class=cl>%d</td></tr>\n", $avg,$min1,$min2;
                   $min1 = 500;
                   $min2 = 500;
                   $avg = 0;
@@ -255,12 +267,12 @@ sub HTML
                   print HTML_FILE "<td>&nbsp;</td>";
                   $num++;
                }
-               printf HTML_FILE "<td>%03.02f</td>", $avg;
-               print HTML_FILE "<td>$min1</td>";
+               printf HTML_FILE "<td class=cl>%03.02f</td>", $avg;
+               print HTML_FILE "<td class=cl>$min1</td>";
                if ($min2 != 500) {
-                  print HTML_FILE "<td>$min2</td></tr>\n";
+                  print HTML_FILE "<td class=cl>$min2</td></tr>\n";
                } else {
-                  print HTML_FILE "<td>&nbsp;</td></tr>\n";
+                  print HTML_FILE "<td class=cl>&nbsp;</td></tr>\n";
                }
             }
             print HTML_FILE "</tr>\n";
@@ -272,16 +284,21 @@ sub HTML
 
    # get a list of dates for this session.
    my @dates = GetDates($session);
-
+   my $x = 0;
    # for each date write header with quick links
    print HTML_FILE "<hr><br>";
    print HTML_FILE "Click below (or scroll down) for scores on individual days<p>\n";
-   print HTML_FILE "<table>\n";
-   print HTML_FILE "<tr>\n";
+   print HTML_FILE "<table class=datelist>\n";
+   print HTML_FILE "<tr  class=datelist>\n";
    foreach my $date (@dates) {
          my $hrdate = ConvertDateHR($date);
          # print the header for this
-         print HTML_FILE "<td><a href=\"#$date\">$hrdate</a></td>\n";
+         print HTML_FILE "<td class=datelist><a href=\"#$date\">$hrdate</a></td>\n";
+         $x++;
+         if ($x == 7){
+         print HTML_FILE "<tr><tr>\n";
+	 $x = 0
+         }
    }
    print HTML_FILE "</tr>\n";
    print HTML_FILE "</table>\n";
@@ -294,7 +311,7 @@ sub HTML
 
       # print the scores for this day for each person
       print HTML_FILE "\n<hr><a name=\"$date\"><h2>$hrdate</h2></a>\n";
-
+      print HTML_FILE "<a href=#top> TOP </a>\n";
 
       foreach my $eid (@eids) {
          foreach my $did (@dids) {
@@ -305,8 +322,8 @@ sub HTML
                print HTML_FILE "<h3>$event -- $division</h3>\n";
                print HTML_FILE "<table cellpadding='5' border='1'>\n";
                print HTML_FILE "<tr>\n";
-               print HTML_FILE "<th>Name</th>\n";
-               print HTML_FILE "<th>Scores</th>\n";
+               print HTML_FILE "<th class=sname>Name</th>\n";
+               print HTML_FILE "<th colspan=10 align=left>Scores cal/score</th>\n";
                print HTML_FILE "</tr>\n";
             } else {
                next;

@@ -1,0 +1,68 @@
+<style type="text/css">
+/*Styles for the MNSL generated html*/
+div.ex
+{
+width:300px;
+padding:20px;
+border:5px solid gray;
+margin:20px;
+}
+
+table {
+border:2px solid black;
+border-collapse:collapse;
+/*width:75%;*/
+}
+
+table,td,th
+{
+border:1px solid black;
+}
+td.cl
+{
+text-align:center;
+}
+/*This is the name filed of the scors*/
+th.sname {
+	width:250px;
+	text-align:left;
+}
+th.scorenum {
+	width:40px;
+}
+
+th.scoreavg {
+	width:100px;
+}
+
+th.scoreminmax {
+	width:100px;
+}
+/*The next 3 styles are for the listing of the dates at the bottom of the main scores*/
+table.datelist 
+{
+border:3px solid grey;
+padding:15px;
+height:50px;
+margin:20px;
+/*padding-top:25px;
+padding-bottom:25px;
+padding-right:50px;
+padding-left:50px;*/
+}
+
+/*tr.datelist 
+{
+
+}
+*/
+td.datelist
+{
+width:175px;
+text-align:center;
+}
+
+.pageheader {
+font-size:40px;
+}
+</style>
