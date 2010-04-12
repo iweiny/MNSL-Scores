@@ -101,14 +101,16 @@ sub SplitName
 
 sub UpdateShooter
 {
-   my ($old, $fname, $lname) = @_;
+   my ($old, $fname, $lname, $email, $phone, $addr, $city, $st, $zip) = @_;
 
    my ($old_fname, $old_lname) = SplitName($old);
 
    my $sth = MNSLQuery::query(
             "select id,fname,lname from shooters where fname='$old_fname' and lname='$old_lname';");
    my @s = $sth->fetchrow_array;
-   MNSLQuery::query("update shooters set fname='$fname',lname='$lname' where id='$s[0]';");
+   MNSLQuery::query("update shooters set fname='$fname',lname='$lname',email='$email',".
+                  "phone='$phone',address='$addr',city='$city',state='$st',zip='$zip' ".
+                  "where id='$s[0]';");
 }
 
 sub EditPerson
@@ -117,24 +119,88 @@ sub EditPerson
    my $old_name = "";
    my $fname = "";
    my $lname = "";
+   my $email = "";
+   my $phone = "";
+   my $addr = "";
+   my $city = "";
+   my $st = "";
+   my $zip = "";
 
    my $dialog = $main->DialogBox(-title => "Change Name", -buttons => ["OK","Cancel"]);
-
    my $topframe = $dialog->Frame()->pack(-side=>'top');
    $topframe->Label(-text => "Change:")->pack(-side=>'left');
    $topframe->MatchEntry(-textvariable => \$old_name, -choices => \@shooters)->pack(-side=>'left');
-   $topframe->Label(-text => "to")->pack(-side=>'left');
-
-   $dialog->Label(-text => "First")->pack(-side=>'left');
-   $dialog->Entry(-textvariable => \$fname)->pack(-side=>'left');
-   $dialog->Label(-text => "Last")->pack(-side=>'left');
-   $dialog->Entry(-textvariable => \$lname)->pack(-side=>'left');
-
    my $choice = $dialog->Show();
+
    if ($choice eq "OK") {
-      print "Updating $old_name to: $fname $lname\n";
-      UpdateShooter($old_name, $fname, $lname);
-      UpdateShooterList();
+
+      while (1) {
+         my @shooter = GetShooter($old_name);
+         if (scalar @shooter < 1) {
+            my $win = $main->DialogBox(-title => 'ERROR: Shooter not found', -buttons => ["Yes","Cancel"]);
+            $win->Label(-text => "Shooter $old_name does not exist: add them?")->pack();
+            $choice = $win->Show();
+            if ($choice eq "Cancel") {
+               return;
+            }
+            AddShooterEntry($old_name);
+            @shooter = GetShooter($old_name);
+         }
+   
+         my $id = $shooter[0];
+         $fname = $shooter[1];
+         $lname = $shooter[2];
+         $email = $shooter[3];
+         $phone = $shooter[4];
+         $addr = $shooter[5];
+         $city = $shooter[6];
+         $st = $shooter[7];
+         $zip = $shooter[8];
+   
+         my $dialog = $main->DialogBox(-title => "Enter New Shooter Info", -buttons => ["OK","Cancel"]);
+         my $midframe = $dialog->Frame()->pack(-side=>'bottom');
+         
+         $midframe->Label(-text => "First")->grid(
+               $midframe->Entry(-textvariable => \$fname));
+         $midframe->Label(-text => "Last")->grid(
+               $midframe->Entry(-textvariable => \$lname));
+         $midframe->Label(-text => "email")->grid(
+               $midframe->Entry(-textvariable => \$email));
+         $midframe->Label(-text => "phone")->grid(
+               $midframe->Entry(-textvariable => \$phone));
+         $midframe->Label(-text => "address")->grid(
+               $midframe->Entry(-textvariable => \$addr));
+         $midframe->Label(-text => "city")->grid(
+               $midframe->Entry(-textvariable => \$city));
+         $midframe->Label(-text => "state")->grid(
+               $midframe->Entry(-textvariable => \$state));
+         $midframe->Label(-text => "zip")->grid(
+               $midframe->Entry(-textvariable => \$zip));
+         
+         my $choice = $dialog->Show();
+         if ($choice eq "OK") {
+            if ($fname eq "" && $lname eq "") {
+               my $win = $main->DialogBox(-title => 'ERROR: No Name', -buttons => ["OK"]);
+               $win->Label(-text => "At minimum, a first or last name must be specified.")->pack();
+               $win->Show();
+               next;
+            }
+            @shooter = GetShooter("$fname $lname");
+            if (scalar @shooter > 1 && $shooter[0] != $id) {
+               my $win = $main->DialogBox(-title => 'ERROR: Duplicate Entry', -buttons => ["OK"]);
+               $win->Label(-text => "$fname $lname already exists as another entry.\n".
+                                 "First and last name must be unique for all shooters.\n".
+                                 "Please change your entry.")->pack();
+               $win->Show();
+               next;
+            }
+            UpdateShooter($old_name, $fname, $lname, $email, $phone, $addr, $city, $st, $zip);
+            UpdateShooterList();
+            return;
+         } else {
+            return;
+         }
+      }
    }
 }
 
@@ -393,6 +459,16 @@ sub UpdateShooterList
    $shooters_entry->choices(\@shooters);
 }
 
+sub GetShooter
+{
+   my ($name) = @_;
+   my ($fname, $lname) = SplitName($name);
+   my $sth = MNSLQuery::query("select id,fname,lname,email,phone,address,city,state,zip ".
+                              "from shooters where fname='$fname' and lname='$lname';");
+   my @s = $sth->fetchrow_array;
+   return (@s);
+}
+
 sub AddShooterEntry
 {
    my ($new_shooter) = @_;
@@ -511,7 +587,6 @@ sub build_main_window
                      $print_frame->Label(-text => "Caliber"),
                      $print_frame->Label(-text => "Score"),
                       -sticky => "nsew");
-
 
    $shooters_entry = $print_frame->MatchEntry(-textvariable => \$shooter,
                                              -choices => \@shooters);
