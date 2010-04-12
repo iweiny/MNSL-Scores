@@ -11,7 +11,19 @@ sub connect
 {
    my ($user, $password, $db) = @_;
    $MNSLQuery::dbh = DBI->connect("dbi:mysql:$db", $user, $password)
-                           or die "Connection Error: ";
+                        or die "DataBase Connection Error: " . DBI->errstr;
+}
+
+sub reconnect
+{
+   my ($user, $password, $db) = @_;
+   MNSLQuery::disconnect();
+   MNSLQuery::connect($user, $password, $db);
+}
+
+sub disconnect
+{
+   $MNSLQuery::dbh->disconnect();
 }
 
 sub query
