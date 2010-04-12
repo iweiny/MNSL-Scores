@@ -259,12 +259,6 @@ sub GenHTML
    my $sdate = GetStartDate($session);
    my $file = "$datadir/Session$session-$sdate.html";
 
-# FIXME
-#   my $win = $main->FileDialog(-title => 'Export Data File', -Create => 0);
-#   $win->configure(-Title => "Select File", -SelDir => 1, -ShowAll => 'yes',
-#                  -Path => $data_dir);
-#   my $choice = $win->Show();
-
    Generate::HTML($file, $session, $sdate);
 
    my $win = $main->DialogBox(-title => "Generate HTML Complete",
@@ -359,7 +353,8 @@ sub ChangeDate
    $choice = $win->Show();
    if ($choice eq "OK") {
       $date = $d;
-      $mb_date->configure(-text=>"$date");
+      my $hrdate = Generate::ConvertDateHR($date);
+      $mb_date->configure(-text=>"$hrdate");
    }
 }
 
@@ -453,8 +448,8 @@ sub build_menubar
    my $date_mb = $menu_bar->Menubutton(-text=>'Date')->pack(-side=>'left');
    $date_mb->command(-label=>'Change Date...', -command => [\&ChangeDate, $mw]);
 
-# FIXME change to HR date
-   $mb_date = $menu_bar->Label(-text=>$date)->pack(-side=>'right');
+   my $hrdate = Generate::ConvertDateHR($date);
+   $mb_date = $menu_bar->Label(-text=>$hrdate)->pack(-side=>'right');
    $menu_bar->Label(-text=>'Score Date: ')->pack(-side=>'right');
 }
 
