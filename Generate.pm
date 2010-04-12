@@ -11,14 +11,11 @@ my $tmp = "tmp";
 my @month_names = ("", "January", "Febuary", "March", "April", "May", "June",
                   "July", "August", "September", "October", "November", "December");
 
-
-
 sub write_html_header
 {
    my ($file, $session, $sdate) = @_;
    my $hrdate = ConvertDateHR($sdate);
 
-   my $cssstring = open(MYDATA, "css");
    print $file "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\n";   
    print $file "<html>\n";
    print $file "<head>\n";
