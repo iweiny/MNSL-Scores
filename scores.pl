@@ -23,6 +23,7 @@ $session_st = ();
 $date = ();
 $basedir = dirname(abs_path($0));
 $conf = "$basedir/scores.conf";
+$datadir = "$basedir/data";
 
 # Vars for UI
 @shooters = ("");
@@ -256,8 +257,9 @@ sub GenHTML
    my ($main) = @_;
 
    my $sdate = GetStartDate($session);
-   my $file = "Session$session-$sdate.html";
+   my $file = "$datadir/Session$session-$sdate.html";
 
+# FIXME
 #   my $win = $main->FileDialog(-title => 'Export Data File', -Create => 0);
 #   $win->configure(-Title => "Select File", -SelDir => 1, -ShowAll => 'yes',
 #                  -Path => $data_dir);
@@ -278,12 +280,27 @@ sub ExportDataFile
 {
    my ($main) = @_;
 
-#   my $win = $main->FileDialog(-title => 'Export Data File', -Create => 0);
-#   $win->configure(-Title => "Select File", -SelDir => 1, -ShowAll => 'yes',
-#                  -Path => $data_dir);
-#   my $choice = $win->Show();
+   my $win = $main->FileDialog();
+   my $today = GetToday();
+   my $file = "Session-$session\_$session_st\_$today.sql";
+   $win->configure(-Title => "Export Data to...", -ShowAll => 'yes',
+                  -Path => $datadir, -File => $file);
+   my $choice = $win->Show();
 
-   showGenComplete("Export Data Complete", $main);
+   if ($choice ne "") {
+      Generate::DataFile($choice);
+      showGenComplete("$file", $main);
+   }
+}
+
+sub GetToday
+{
+   # Get todays date as a default
+   my ($second, $minute, $hour, $dayOfMonth, $month, $yearOffset, $dayOfWeek,
+      $dayOfYear, $daylightSavings) = localtime();
+   my $year = 1900 + $yearOffset;
+   my $month = 1 + $month;
+   return (sprintf("%04d-%02d-%02d", $year, $month, $dayOfMonth));
 }
 
 sub ReadConfig
@@ -311,12 +328,7 @@ sub ReadConfig
       die "Failed to retrieve database user from config: $conf\n";
    }
 
-   # Get todays date as a default
-   my ($second, $minute, $hour, $dayOfMonth, $month, $yearOffset, $dayOfWeek,
-      $dayOfYear, $daylightSavings) = localtime();
-   my $year = 1900 + $yearOffset;
-   my $month = 1 + $month;
-   $date = sprintf("%04d-%02d-%02d", $year, $month, $dayOfMonth);
+   $date = GetToday();
 }
 
 sub WriteConfig
@@ -441,6 +453,7 @@ sub build_menubar
    my $date_mb = $menu_bar->Menubutton(-text=>'Date')->pack(-side=>'left');
    $date_mb->command(-label=>'Change Date...', -command => [\&ChangeDate, $mw]);
 
+# FIXME change to HR date
    $mb_date = $menu_bar->Label(-text=>$date)->pack(-side=>'right');
    $menu_bar->Label(-text=>'Score Date: ')->pack(-side=>'right');
 }
@@ -533,6 +546,9 @@ sub build_main_window
 }
 
 # main
+if (! -d $datadir) {
+   mkdir $datadir;
+}
 ReadConfig();
 # open DB connection
 MNSLQuery::connect($dbuser, $dbpw, $db);

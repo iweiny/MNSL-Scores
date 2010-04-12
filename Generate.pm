@@ -350,9 +350,9 @@ sub HTML
    close(HTML_FILE);
 }
 
-sub DataTar
+sub DataFile
 {
-   my ($season, $season_path) = @_;
-   system("pushd $season_path; tar czf $season.tgz $season; popd; mv $season_path/$season.tgz $tmp");
+   my ($file, $db_user, $db_pw, $db) = @_;
+   system ("mysqldump -u $db_user --password=$db_pw $db > $file");
 }
 
