@@ -230,9 +230,9 @@ sub EditScores
 
 sub showGenComplete
 {
-   my ($type, $main) = @_;
-   my $win = $main->DialogBox(-title => "Generate $type Complete", -buttons => ['OK']);
-   $win->Label(-text => "Generate $type Complete\n")->pack;
+   my ($title, $main) = @_;
+   my $win = $main->DialogBox(-title => "$title", -buttons => ['OK']);
+   $win->Label(-text => "$title")->pack;
 
    my $geom = $main->geometry;
    if ($geom =~ m/(\d+)x(\d+)\+(\d+)\+(\d+)/) {
@@ -269,7 +269,7 @@ sub GenHTML
 
    my $win = $main->DialogBox(-title => "Generate HTML Complete",
                   -buttons => ['OK', 'View in Firefox']);
-   $win->Label(-text => "Generate HTML Complete\n")->pack;
+   $win->Label(-text => "Written to: $file\n")->pack;
    my $choice = $win->Show;
    if ($choice eq 'View in Firefox') {
       system("firefox $file&");
@@ -289,7 +289,7 @@ sub ExportDataFile
 
    if ($choice ne "") {
       Generate::DataFile($choice);
-      showGenComplete("$file", $main);
+      showGenComplete("Export '$file' Complete", $main);
    }
 }
 
