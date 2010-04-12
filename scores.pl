@@ -17,6 +17,7 @@ use MNSLQuery;
 # configuration vars
 $dbuser = "";
 $dbpw = "";
+$db = "";
 $session = ();
 $session_st = ();
 $date = ();
@@ -298,6 +299,9 @@ sub ReadConfig
       if ("$var" eq "db_pw") {
          $dbpw = $value;
       }
+      if ("$var" eq "db") {
+         $db = $value;
+      }
       if ("$var" eq "session") {
          $session = $value;
       }
@@ -320,6 +324,7 @@ sub WriteConfig
    open FILE, "+>$conf" or die "Could not write config \"$conf\"\n";
    print FILE "db_user: $dbuser\n";
    print FILE "db_pw:   $dbpw\n";
+   print FILE "db:      $db\n";
    print FILE "session: $session\n";
    close (FILE);
 }
@@ -480,7 +485,7 @@ sub build_main_window
 {
    LoadDBs();
 
-   my $title = "MNSL Scores -- Session $session ($session_st)";
+   my $title = "MNSL Scores -- Session $session (Start Date: $session_st)";
    my $mw = new MainWindow(-title => $title);
 
    if (InvalidSession($session)) {
@@ -530,7 +535,7 @@ sub build_main_window
 # main
 ReadConfig();
 # open DB connection
-MNSLQuery::connect($dbuser, $dbpw);
+MNSLQuery::connect($dbuser, $dbpw, $db);
 
 my $sth = MNSLQuery::query("select sdate from league ".
                "where lnum='$session';");

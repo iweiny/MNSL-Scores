@@ -9,8 +9,9 @@ $MNSLQuery::VERSION = 1.00;
 
 sub connect
 {
-   my ($user, $password) = @_;
-   $MNSLQuery::dbh = DBI->connect('dbi:mysql:mnsl', $user, $password) or die "Connection Error: ";
+   my ($user, $password, $db) = @_;
+   $MNSLQuery::dbh = DBI->connect("dbi:mysql:$db", $user, $password)
+                           or die "Connection Error: ";
 }
 
 sub query
