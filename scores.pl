@@ -136,17 +136,55 @@ sub EditPerson
    }
 }
 
+sub GetScoresDayShooter
+{
+   my ($date, $name) = @_;
+   my ($fname, $lname) = SplitName($name);
+   my $sth = MNSLQuery::query("select s.id, e.name, d.name, s.cal, s.score ".
+                     "from scores as s, shooters as sh, event as e, division as d ".
+                     "where s.eid=e.id and s.did=d.id and s.shooterid=sh.id ".
+                     "and sh.fname='$fname' and sh.lname='$lname' and dte='$date';");
+   my @rc;
+   while (my @res = $sth->fetchrow_array) {
+      push (@rc, \@res);
+   }
+   return (@rc);
+}
+
+sub UpdateScore
+{
+   my ($id, $event, $div, $cal, $score) = @_;
+   my $sth = MNSLQuery::query("select id from event where name='$event';");
+   my @res = $sth->fetchrow_array;
+   my $eid = $res[0];
+
+   $sth = MNSLQuery::query("select id from division where name='$div';");
+   @res = $sth->fetchrow_array;
+   my $did = $res[0];
+
+   $sth = MNSLQuery::query("update scores set eid=$eid,did=$did,cal='$cal',score='$score' ".
+                           "where id='$id';");
+}
+
 sub EditScores
 {
    my ($main) = @_;
    my $date = "";
    my $name = "";
-   my $win = $main->DialogBox(-title => 'Choose Date/Name', -buttons => ["OK","Cancel"]);
-   $win->DateEntry(-textvariable =>\$date, -dateformat=>4)->pack(-side=>'left');
+   my $win = $main->DialogBox(-title => 'Choose Name and Date to change', -buttons => ["OK","Cancel"]);
    $win->MatchEntry(-textvariable => \$name, -choices => \@shooters)->pack(-side=>'left');
+   $win->DateEntry(-textvariable =>\$date, -dateformat=>4)->pack(-side=>'left');
    my $choice = $win->Show();
    if ($choice eq "OK") {
       # read scores for that day and shooter
+      my @scores = GetScoresDayShooter($date, $name);
+
+      if (scalar @scores < 1) {
+         my $win = $main->DialogBox(-title => 'ERROR: No Scores Found', -buttons => ["OK"]);
+         $win->Label(-text => "No Scores found for '$name' on '$date'")->pack();
+         $win->Show();
+         return;
+      }
 
       # build dialog with those scores which can be editied.
       my $win = $main->DialogBox(-title => "Change scores for $name ($date)", -buttons => ["OK","Cancel"]);
@@ -159,55 +197,31 @@ sub EditScores
                      $print_frame->Label(-text => "Score"),
                       -sticky => "nsew");
 
-      # arrays to hold the values for the options
-      my @ev_ary = ();
-      my @div_ary = ();
-      my @cal_ary = ();
-      my @score_ary = ();
-
-      my $event;
-      my $division;
-      # foreach my $score (@scores) {
-         $ev_ary[0] = "Tyro";
-         $event = $print_frame->Optionmenu(-options => \@events,
-                                       -variable => \$ev_ary[0]),
-         $div_ary[0] = "Prod";
-         $division = $print_frame->Optionmenu(-options => \@divisions,
-                                       -variable => \$div_ary[0]),
-         $cal_ary[0] = ".45";
+      foreach my $score (@scores) {
+         # score[0] is the id of the row we would change
+         my $event = $print_frame->Optionmenu(-options => \@events,
+                                       -variable => \$score->[1]),
+         my $division = $print_frame->Optionmenu(-options => \@divisions,
+                                       -variable => \$score->[2]),
          $caliber_entry = $print_frame->MatchEntry(-choices => \@calibers,
-                                       -textvariable => \$cal_ary[0]);
+                                       -textvariable => \$score->[3]);
 
-         $score_ary[0] = "465";
          $event->grid(
                   $division,
                   $caliber_entry,
-                  $print_frame->Entry(-textvariable => \$score_ary[0]),
+                  $print_frame->Entry(-textvariable => \$score->[4]),
                   -sticky => "nsew");
 
-         $ev_ary[1] = "PPC";
-         $event = $print_frame->Optionmenu(-options => \@events,
-                                       -variable => \$ev_ary[1]),
-         $div_ary[1] = "22";
-         $division = $print_frame->Optionmenu(-options => \@divisions,
-                                       -variable => \$div_ary[1]),
-         $cal_ary[1] = ".22";
-         $caliber_entry = $print_frame->MatchEntry(-choices => \@calibers,
-                                       -textvariable => \$cal_ary[1]);
-
-         $score_ary[1] = "470";
-         $event->grid(
-                  $division,
-                  $caliber_entry,
-                  $print_frame->Entry(-textvariable => \$score_ary[1]),
-                  -sticky => "nsew");
-      #}
+      }
 
       my $choice = $win->Show();
       if ($choice eq "OK") {
          print "Changing scores for $name on $date\n";
-         print "$ev_ary[0]:$div_ary[0]:$cal_ary[0]:$score_ary[0]\n";
-         print "$ev_ary[1]:$div_ary[1]:$cal_ary[1]:$score_ary[1]\n";
+         foreach my $score (@scores) {
+            print "Updating scores:\n";
+            print "$score->[0], $score->[1], $score->[2], $score->[3], $score->[4]\n";
+            UpdateScore($score->[0], $score->[1], $score->[2], $score->[3], $score->[4]);
+         }
       }
    }
 }
@@ -522,8 +536,6 @@ my $sth = MNSLQuery::query("select sdate from league ".
                "where lnum='$session';");
 my @res = $sth->fetchrow_array;
 $session_st = $res[0];
-print "$session_st\n";
-
 
 build_main_window;
 MainLoop;
