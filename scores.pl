@@ -348,7 +348,7 @@ sub ExportDataFile
    my $choice = $win->Show();
 
    if ($choice ne "") {
-      Generate::DataFile($choice);
+      Generate::DataFile($choice, $dbuser, $dbpw, $db);
       showGenComplete("Export '$file' Complete", $main);
    }
 }
