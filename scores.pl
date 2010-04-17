@@ -129,7 +129,10 @@ sub EditPerson
    my $dialog = $main->DialogBox(-title => "Change Name", -buttons => ["OK","Cancel"]);
    my $topframe = $dialog->Frame()->pack(-side=>'top');
    $topframe->Label(-text => "Change:")->pack(-side=>'left');
-   $topframe->MatchEntry(-textvariable => \$old_name, -choices => \@shooters)->pack(-side=>'left');
+   my $sh_ent = $topframe->MatchEntry(-textvariable => \$old_name, -choices => \@shooters)
+                              ->pack(-side=>'left');
+   $sh_ent->selection('range', 0, 60);
+   $sh_ent->focus();
    my $choice = $dialog->Show();
 
    if ($choice eq "OK") {
@@ -160,8 +163,9 @@ sub EditPerson
          my $dialog = $main->DialogBox(-title => "Enter New Shooter Info", -buttons => ["OK","Cancel"]);
          my $midframe = $dialog->Frame()->pack(-side=>'bottom');
          
-         $midframe->Label(-text => "First")->grid(
-               $midframe->Entry(-textvariable => \$fname));
+         my $foc = $midframe->Entry(-textvariable => \$fname);
+
+         $midframe->Label(-text => "First")->grid($foc);
          $midframe->Label(-text => "Last")->grid(
                $midframe->Entry(-textvariable => \$lname));
          $midframe->Label(-text => "email")->grid(
@@ -177,6 +181,8 @@ sub EditPerson
          $midframe->Label(-text => "zip")->grid(
                $midframe->Entry(-textvariable => \$zip));
          
+         $foc->selection('range', 0, 60);
+         $foc->focus();
          my $choice = $dialog->Show();
          if ($choice eq "OK") {
             if ($fname eq "" && $lname eq "") {
@@ -221,7 +227,13 @@ sub GetScoresDayShooter
 
 sub UpdateScore
 {
-   my ($id, $event, $div, $cal, $score) = @_;
+   my ($id, $event, $div, $cal, $score, $delete) = @_;
+
+   if ($delete) {
+      my $sth = MNSLQuery::query("delete from scores where id=$id;");
+      return;
+   }
+
    my $sth = MNSLQuery::query("select id from event where name='$event';");
    my @res = $sth->fetchrow_array;
    my $eid = $res[0];
@@ -237,11 +249,13 @@ sub UpdateScore
 sub EditScores
 {
    my ($main) = @_;
-   my $date = "";
+   my $date = GetToday();
    my $name = "";
    my $win = $main->DialogBox(-title => 'Choose Name and Date to change', -buttons => ["OK","Cancel"]);
-   $win->MatchEntry(-textvariable => \$name, -choices => \@shooters)->pack(-side=>'left');
    $win->DateEntry(-textvariable =>\$date, -dateformat=>4)->pack(-side=>'left');
+   my $enter_name = $win->MatchEntry(-textvariable => \$name, -choices => \@shooters)->pack(-side=>'left');
+   $enter_name->selection('range', 0, 60);
+   $enter_name->focus();
    my $choice = $win->Show();
    if ($choice eq "OK") {
       # read scores for that day and shooter
@@ -254,8 +268,9 @@ sub EditScores
          return;
       }
 
+      my $hrdate = Generate::ConvertDateHR($date);
       # build dialog with those scores which can be editied.
-      my $win = $main->DialogBox(-title => "Change scores for $name ($date)", -buttons => ["OK","Cancel"]);
+      my $win = $main->DialogBox(-title => "Change scores for $name ($hrdate)", -buttons => ["OK","Cancel"]);
       my $main_frame = $win->Frame->pack(-side=>'bottom', -fill=>'x');
 
       my $print_frame = $main_frame->Frame->pack(-side=>'top', -fill=>'x');
@@ -263,6 +278,7 @@ sub EditScores
                      $print_frame->Label(-text => "Division"),
                      $print_frame->Label(-text => "Caliber"),
                      $print_frame->Label(-text => "Score"),
+                     $print_frame->Label(-text => "Delete"),
                       -sticky => "nsew");
 
       foreach my $score (@scores) {
@@ -274,10 +290,12 @@ sub EditScores
          $caliber_entry = $print_frame->MatchEntry(-choices => \@calibers,
                                        -textvariable => \$score->[3]);
 
+         $score->[5] = 0; # signifys don't delete
          $event->grid(
                   $division,
                   $caliber_entry,
                   $print_frame->Entry(-textvariable => \$score->[4]),
+                  $print_frame->Checkbutton(-variable => \$score->[5]),
                   -sticky => "nsew");
 
       }
@@ -287,8 +305,9 @@ sub EditScores
          print "Changing scores for $name on $date\n";
          foreach my $score (@scores) {
             print "Updating scores:\n";
-            print "$score->[0], $score->[1], $score->[2], $score->[3], $score->[4]\n";
-            UpdateScore($score->[0], $score->[1], $score->[2], $score->[3], $score->[4]);
+            print "$score->[0], $score->[1], $score->[2], $score->[3], $score->[4], $score->[5]\n";
+            UpdateScore($score->[0], $score->[1], $score->[2], $score->[3],
+                        $score->[4], $score->[5]);
          }
       }
    }
