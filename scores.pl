@@ -581,24 +581,24 @@ sub build_main_window
    build_menubar($mw);
    
    my $print_frame = $mw->Frame->pack(-side=>'bottom', -fill=>'x');
-   $print_frame->Label(-text => "Shooter")->grid(
-                     $print_frame->Label(-text => "Event"),
+   $print_frame->Label(-text => "Event")->grid(
+                     $print_frame->Label(-text => "Shooter"),
                      $print_frame->Label(-text => "Division"),
                      $print_frame->Label(-text => "Caliber"),
                      $print_frame->Label(-text => "Score"),
                       -sticky => "nsew");
 
-   $shooters_entry = $print_frame->MatchEntry(-textvariable => \$shooter,
-                                             -choices => \@shooters);
    my $event = $print_frame->Optionmenu(-options => \@events,
                                        -variable => \$event),
+   $shooters_entry = $print_frame->MatchEntry(-textvariable => \$shooter,
+                                             -choices => \@shooters);
    my $division = $print_frame->Optionmenu(-options => \@divisions,
                                        -variable => \$division),
    $caliber_entry = $print_frame->MatchEntry(-textvariable => \$caliber,
                                              -choices => \@calibers);
 
-   $shooters_entry->grid(
-               $event,
+   $event->grid(
+               $shooters_entry,
                $division,
                $caliber_entry,
                $print_frame->Entry(-textvariable => \$score),
@@ -606,6 +606,9 @@ sub build_main_window
                            -command => [\&SaveScore, $shooter, $event, $division,
                                                       $caliber, $score]),
                    -sticky => "nsew");
+
+   $shooters_entry->selection('range', 0, 60);
+   $shooters_entry->focus();
 
    my $sw = $mw->screenwidth;
    my $sh = $mw->screenheight;
