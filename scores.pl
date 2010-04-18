@@ -225,6 +225,21 @@ sub GetScoresDayShooter
    return (@rc);
 }
 
+sub GetScoresDay
+{
+   my ($date) = @_;
+   my ($fname, $lname) = SplitName($name);
+   my $sth = MNSLQuery::query("select sh.fname, sh.lname, e.name, d.name, s.cal, s.score ".
+                     "from scores as s, shooters as sh, event as e, division as d ".
+                     "where s.eid=e.id and s.did=d.id and s.shooterid=sh.id ".
+                     "and dte='$date' order by sh.lname,sh.fname;");
+   my @rc;
+   while (my @res = $sth->fetchrow_array) {
+      push (@rc, \@res);
+   }
+   return (@rc);
+}
+
 sub UpdateScore
 {
    my ($id, $event, $div, $cal, $score, $delete) = @_;
@@ -246,14 +261,59 @@ sub UpdateScore
                            "where id='$id';");
 }
 
+sub ViewScores
+{
+   my ($main) = @_;
+   my $date = GetToday();
+   my @dates = Generate::GetDates($session);
+   my $win = $main->DialogBox(-title => 'Choose Date', -buttons => ["OK","Cancel"]);
+   $win->Label(-text => "Choose Date")->pack(-side => 'top', -fill => 'x');
+   my $d = $win->Optionmenu(-options => \@dates, -variable => \$date)->pack(-side=>'left');
+   $d->focus();
+   my $choice = $win->Show();
+
+   if ($choice eq "OK") {
+      # read scores for that day and shooter
+      my @scores = GetScoresDay($date);
+
+      my $hrdate = Generate::ConvertDateHR($date);
+      # build dialog with those scores which can be editied.
+      my $win = $main->DialogBox(-title => "Scores for $hrdate", -buttons => ["OK"]);
+      $win->Label(-text => "Scores for $hrdate")->pack(-side => 'top', -fill => 'x');
+      my $main_frame = $win->Frame->pack(-side=>'bottom', -fill=>'x');
+
+      my $print_frame = $main_frame->Frame->pack(-side=>'top', -fill=>'x');
+      $print_frame->Label(-text => "Name")->grid(
+                     $print_frame->Label(-text => "Event"),
+                     $print_frame->Label(-text => "Division"),
+                     $print_frame->Label(-text => "Caliber"),
+                     $print_frame->Label(-text => "Score"),
+                      -sticky => "nsew");
+
+      foreach my $score (@scores) {
+         my $name = "$score->[0] $score->[1]";
+         $print_frame->Label(-text => $name)->grid(
+                        $print_frame->Label(-text => $score->[2]),
+                        $print_frame->Label(-text => $score->[3]),
+                        $print_frame->Label(-text => $score->[4]),
+                        $print_frame->Label(-text => $score->[5]),
+                        -sticky => "nsew");
+
+      }
+
+      my $choice = $win->Show();
+   }
+}
+
 sub EditScores
 {
    my ($main) = @_;
    my $date = GetToday();
    my @dates = Generate::GetDates($session);
    my $name = "";
-   my $win = $main->DialogBox(-title => 'Choose Name and Date to change',
+   my $win = $main->DialogBox(-title => 'Choose Date and Name to change',
                               -buttons => ["OK","Cancel"]);
+   $win->Label(-text => "Choose Date and Name to change")->pack(-side => 'top', -fill => 'x');
    $win->Optionmenu(-options => \@dates, -variable => \$date)->pack(-side=>'left');
    #$win->DateEntry(-textvariable =>\$date, -dateformat=>4)->pack(-side=>'left');
    my $enter_name = $win->MatchEntry(-textvariable => \$name, -choices => \@shooters)
@@ -548,6 +608,9 @@ sub build_menubar
 
    my $date_mb = $menu_bar->Menubutton(-text=>'Date')->pack(-side=>'left');
    $date_mb->command(-label=>'Change Date...', -command => [\&ChangeDate, $mw]);
+
+   my $date_mb = $menu_bar->Menubutton(-text=>'View')->pack(-side=>'left');
+   $date_mb->command(-label=>'Scores...', -command => [\&ViewScores, $mw]);
 
    my $hrdate = Generate::ConvertDateHR($date);
    $mb_date = $menu_bar->Label(-text=>$hrdate)->pack(-side=>'right');
