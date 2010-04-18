@@ -250,13 +250,18 @@ sub EditScores
 {
    my ($main) = @_;
    my $date = GetToday();
+   my @dates = Generate::GetDates($session);
    my $name = "";
-   my $win = $main->DialogBox(-title => 'Choose Name and Date to change', -buttons => ["OK","Cancel"]);
-   $win->DateEntry(-textvariable =>\$date, -dateformat=>4)->pack(-side=>'left');
-   my $enter_name = $win->MatchEntry(-textvariable => \$name, -choices => \@shooters)->pack(-side=>'left');
+   my $win = $main->DialogBox(-title => 'Choose Name and Date to change',
+                              -buttons => ["OK","Cancel"]);
+   $win->Optionmenu(-options => \@dates, -variable => \$date)->pack(-side=>'left');
+   #$win->DateEntry(-textvariable =>\$date, -dateformat=>4)->pack(-side=>'left');
+   my $enter_name = $win->MatchEntry(-textvariable => \$name, -choices => \@shooters)
+                                 ->pack(-side=>'left');
    $enter_name->selection('range', 0, 60);
    $enter_name->focus();
    my $choice = $win->Show();
+
    if ($choice eq "OK") {
       # read scores for that day and shooter
       my @scores = GetScoresDayShooter($date, $name);
@@ -270,7 +275,8 @@ sub EditScores
 
       my $hrdate = Generate::ConvertDateHR($date);
       # build dialog with those scores which can be editied.
-      my $win = $main->DialogBox(-title => "Change scores for $name ($hrdate)", -buttons => ["OK","Cancel"]);
+      my $win = $main->DialogBox(-title => "Change scores for $name ($hrdate)",
+                                 -buttons => ["OK","Cancel"]);
       my $main_frame = $win->Frame->pack(-side=>'bottom', -fill=>'x');
 
       my $print_frame = $main_frame->Frame->pack(-side=>'top', -fill=>'x');
