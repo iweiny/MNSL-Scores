@@ -631,6 +631,8 @@ sub SaveScore
 
    printf("Saving Score; $session $date $shooter $event $division $caliber $score\n");
 
+   AddShooterEntry($shooter);
+
    my ($fname, $lname) = SplitName($shooter);
 
    my $sth = MNSLQuery::query("select id from shooters where fname='$fname' and lname='$lname';");
@@ -647,7 +649,6 @@ sub SaveScore
          "insert into scores (dte, leaguenum, score, shooterid, eid, did, cal)".
                  "values ('$date', $session, $score, $sid, $eid, $did, '$caliber');");
 
-   AddShooterEntry($shooter);
    AddCaliberEntry($caliber, \@calibers);
    $shooters_entry->selection('range', 0, 60);
    $shooters_entry->focus();
