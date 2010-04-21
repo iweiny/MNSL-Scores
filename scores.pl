@@ -95,6 +95,8 @@ sub SplitName
    if ($name =~ /(\S*)[ ]*(.*)/) {
       my $fname = $1;
       my $lname = $2;
+      $fname =~ s/\'/\\'/g;
+      $lname =~ s/\'/\\'/g;
       return ($fname, $lname);
    }
    die "Failed to split $name\n";
