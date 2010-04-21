@@ -32,6 +32,7 @@ $shooters_entry = undef;
 @divisions = ();
 @calibers = ();
 $caliber_entry = undef;
+$score_entry = undef;
 @events = ();
 # In the MenuBar
 $mb_date = undef;
@@ -652,6 +653,11 @@ sub SaveScore
    $caliber =~ s/:/;/g;
    $score =~ s/:/;/g;
 
+   if ($score < 0 || $score > 480) {
+      print STDERR "Score is invalid: $score must be between 1 and 480\n";
+      return;
+   }
+
    AddShooterEntry($shooter);
 
    my ($fname, $lname) = SplitName($shooter);
@@ -671,11 +677,16 @@ sub SaveScore
                  "values ('$date', $session, $score, $sid, $eid, $did, '$caliber');");
 
    AddCaliberEntry($caliber, \@calibers);
-   $shooters_entry->selection('range', 0, 60);
-   $shooters_entry->focus();
 
    printf("Score Saved:\n".
          "   $event, \"$shooter\", $division, $caliber, $score, $date, $session \n");
+
+   $shooters_entry->selection('range', 0, 128);
+   $shooters_entry->delete('0.0', 'end');
+   $caliber_entry->delete('0.0', 'end');
+   $score_entry->delete('0.0', 'end');
+   $shooters_entry->focus();
+
 }
 
 my $statustext;
@@ -745,12 +756,13 @@ sub build_main_window
    $caliber_entry = $enter_frame->MatchEntry(-textvariable => \$caliber,
                                              -ignorecase => 'true',
                                              -choices => \@calibers);
+   $score_entry = $enter_frame->Entry(-textvariable => \$score);
 
    $event->grid(
                $shooters_entry,
                $division,
                $caliber_entry,
-               $enter_frame->Entry(-textvariable => \$score),
+               $score_entry,
                $enter_frame->Button(-text => "Save",
                            -command => [\&SaveScore, $shooter, $event, $division,
                                                       $caliber, $score]),
