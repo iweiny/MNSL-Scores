@@ -108,6 +108,9 @@ sub UpdateShooter
 
    my ($old_fname, $old_lname) = SplitName($old);
 
+   $fname =~ s/\'/\\'/g;
+   $lname =~ s/\'/\\'/g;
+
    my $sth = MNSLQuery::query(
             "select id,fname,lname from shooters where fname='$old_fname' and lname='$old_lname';");
    my @s = $sth->fetchrow_array;
@@ -145,7 +148,8 @@ sub EditPerson
       while (1) {
          my @shooter = GetShooter($old_name);
          if (scalar @shooter < 1) {
-            my $win = $main->DialogBox(-title => 'ERROR: Shooter not found', -buttons => ["Yes","Cancel"]);
+            my $win = $main->DialogBox(-title => 'ERROR: Shooter not found',
+                                       -buttons => ["Yes","Cancel"]);
             $win->Label(-text => "Shooter $old_name does not exist: add them?")->pack();
             $choice = $win->Show();
             if ($choice eq "Cancel") {
@@ -207,6 +211,8 @@ sub EditPerson
             }
             UpdateShooter($old_name, $fname, $lname, $email, $phone, $addr, $city, $st, $zip);
             UpdateShooterList();
+            print "Updated \"$old_name\":\n";
+            print "   \"$fname $lname\", $email, $phone, $addr, $city, $st, $zip\n";
             return;
          } else {
             return;
@@ -376,7 +382,7 @@ sub EditScores
 
       my $choice = $win->Show();
       if ($choice eq "OK") {
-         print "Updating scores for $name on $date\n";
+         print "Updating scores for \"$name\" on $date\n";
          foreach my $score (@scores) {
             UpdateScore($score->[0], $score->[1], $score->[2], $score->[3],
                         $score->[4], $score->[5]);
@@ -519,6 +525,7 @@ sub ChangeDate
       my $hrdate = Generate::ConvertDateHR($date);
       $mb_date->configure(-text=>"$hrdate");
    }
+   print "Date changed to: $hrdate\n";
 }
 
 sub LoadShooterDB
@@ -581,6 +588,8 @@ sub AddShooterEntry
    MNSLQuery::query("insert into shooters (fname,lname) values ('$fname', '$lname')");
 
    UpdateShooterList();
+
+   print "Added: \"$new_shooter\"\n";
 }
 
 sub AddCaliberEntry
@@ -599,6 +608,8 @@ sub AddCaliberEntry
    # and to the array on the fly
    push(@calibers, $caliber);
    $caliber_entry->choices(\@calibers);
+
+   print "Added: \"$caliber\"";
 }
 
 sub build_menubar
@@ -664,7 +675,7 @@ sub SaveScore
    $shooters_entry->focus();
 
    printf("Score Saved:\n".
-         "   $event $shooter $division $caliber $score league:$session/$date \n");
+         "   $event, \"$shooter\", $division, $caliber, $score, $date, $session \n");
 }
 
 my $statustext;
