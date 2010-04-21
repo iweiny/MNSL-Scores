@@ -129,7 +129,9 @@ sub EditPerson
    my $dialog = $main->DialogBox(-title => "Change Name", -buttons => ["OK","Cancel"]);
    my $topframe = $dialog->Frame()->pack(-side=>'top');
    $topframe->Label(-text => "Change:")->pack(-side=>'left');
-   my $sh_ent = $topframe->MatchEntry(-textvariable => \$old_name, -choices => \@shooters)
+   my $sh_ent = $topframe->MatchEntry(-textvariable => \$old_name,
+                                    -ignorecase => 'true',
+                                    -choices => \@shooters)
                               ->pack(-side=>'left');
    $sh_ent->selection('range', 0, 60);
    $sh_ent->focus();
@@ -316,7 +318,9 @@ sub EditScores
    $win->Label(-text => "Choose Date and Name to change")->pack(-side => 'top', -fill => 'x');
    $win->Optionmenu(-options => \@dates, -variable => \$date)->pack(-side=>'left');
    #$win->DateEntry(-textvariable =>\$date, -dateformat=>4)->pack(-side=>'left');
-   my $enter_name = $win->MatchEntry(-textvariable => \$name, -choices => \@shooters)
+   my $enter_name = $win->MatchEntry(-textvariable => \$name,
+                                 -ignorecase => 'true',
+                                 -choices => \@shooters)
                                  ->pack(-side=>'left');
    $enter_name->selection('range', 0, 60);
    $enter_name->focus();
@@ -354,6 +358,7 @@ sub EditScores
          my $division = $print_frame->Optionmenu(-options => \@divisions,
                                        -variable => \$score->[2]),
          $caliber_entry = $print_frame->MatchEntry(-choices => \@calibers,
+                                       -ignorecase => 'true',
                                        -textvariable => \$score->[3]);
 
          $score->[5] = 0; # signifys don't delete
@@ -680,10 +685,12 @@ sub build_main_window
    my $event = $print_frame->Optionmenu(-options => \@events,
                                        -variable => \$event),
    $shooters_entry = $print_frame->MatchEntry(-textvariable => \$shooter,
+                                             -ignorecase => 'true',
                                              -choices => \@shooters);
    my $division = $print_frame->Optionmenu(-options => \@divisions,
                                        -variable => \$division),
    $caliber_entry = $print_frame->MatchEntry(-textvariable => \$caliber,
+                                             -ignorecase => 'true',
                                              -choices => \@calibers);
 
    $event->grid(
