@@ -7,6 +7,7 @@ use Tk;
 use Tk::MatchEntry;
 use Tk::FileDialog;
 use Tk::BrowseEntry;
+use Tk::JBrowseEntry;
 use Tk::DateEntry;
 use Tk::ROText;
 
@@ -715,6 +716,49 @@ sub build_main_window
    my $frame = $mw->Frame->pack(-side=>'bottom', -fill=>'x');
 
    
+   my $enter_frame = $frame->Frame->pack(-side=>'top', -fill=>'x');
+   $enter_frame->Label(-text => "Event")->grid(
+                     $enter_frame->Label(-text => "Shooter"),
+                     $enter_frame->Label(-text => "Division"),
+                     $enter_frame->Label(-text => "Caliber"),
+                     $enter_frame->Label(-text => "Score"),
+                      -sticky => "nsew");
+
+   my $event = $enter_frame->Optionmenu(-options => \@events,
+                                       -variable => \$event),
+#   my $event = $enter_frame->JBrowseEntry(-choices => \@events,
+#                                       -state => 'readonly',
+#                                       -width => 5,
+#                                       -foreground => 'black',
+#                                       -variable => \$event),
+   $shooters_entry = $enter_frame->MatchEntry(-textvariable => \$shooter,
+                                             -ignorecase => 'true',
+                                             -choices => \@shooters);
+   my $division = $enter_frame->Optionmenu(-options => \@divisions,
+                                       -variable => \$division),
+#   my $division = $enter_frame->JBrowseEntry(-choices => \@divisions,
+#                                       -state => 'readonly',
+#                                       -width => 10,
+#                                       -foreground => 'black',
+#                                       -variable => \$division),
+   $caliber_entry = $enter_frame->MatchEntry(-textvariable => \$caliber,
+                                             -ignorecase => 'true',
+                                             -choices => \@calibers);
+   $score_entry = $enter_frame->Entry(-textvariable => \$score);
+
+   $event->grid(
+               $shooters_entry,
+               $division,
+               $caliber_entry,
+               $score_entry,
+               $enter_frame->Button(-text => "Save",
+                           -command => [\&SaveScore, $shooter, $event, $division,
+                                                      $caliber, $score]),
+                   -sticky => "nsew");
+
+   $shooters_entry->selection('range', 0, 60);
+   $shooters_entry->focus();
+
    my $status_frame = $frame->Frame->pack(-side=>'bottom', -fill=>'x');
 
    $statustext = $status_frame->Scrolled('ROText',
@@ -737,39 +781,6 @@ sub build_main_window
 
    $status_frame->Button(-text => "Clear Status",
                         -command => [\&ClearStatus])->pack();
-
-   my $enter_frame = $frame->Frame->pack(-side=>'top', -fill=>'x');
-   $enter_frame->Label(-text => "Event")->grid(
-                     $enter_frame->Label(-text => "Shooter"),
-                     $enter_frame->Label(-text => "Division"),
-                     $enter_frame->Label(-text => "Caliber"),
-                     $enter_frame->Label(-text => "Score"),
-                      -sticky => "nsew");
-
-   my $event = $enter_frame->Optionmenu(-options => \@events,
-                                       -variable => \$event),
-   $shooters_entry = $enter_frame->MatchEntry(-textvariable => \$shooter,
-                                             -ignorecase => 'true',
-                                             -choices => \@shooters);
-   my $division = $enter_frame->Optionmenu(-options => \@divisions,
-                                       -variable => \$division),
-   $caliber_entry = $enter_frame->MatchEntry(-textvariable => \$caliber,
-                                             -ignorecase => 'true',
-                                             -choices => \@calibers);
-   $score_entry = $enter_frame->Entry(-textvariable => \$score);
-
-   $event->grid(
-               $shooters_entry,
-               $division,
-               $caliber_entry,
-               $score_entry,
-               $enter_frame->Button(-text => "Save",
-                           -command => [\&SaveScore, $shooter, $event, $division,
-                                                      $caliber, $score]),
-                   -sticky => "nsew");
-
-   $shooters_entry->selection('range', 0, 60);
-   $shooters_entry->focus();
 
    my $sw = $mw->screenwidth;
    my $sh = $mw->screenheight;
