@@ -8,6 +8,7 @@ use Tk::MatchEntry;
 use Tk::FileDialog;
 use Tk::BrowseEntry;
 use Tk::DateEntry;
+use Tk::ROText;
 
 
 use Generate;
@@ -373,12 +374,16 @@ sub EditScores
 
       my $choice = $win->Show();
       if ($choice eq "OK") {
-         print "Changing scores for $name on $date\n";
+         print "Updating scores for $name on $date\n";
          foreach my $score (@scores) {
-            print "Updating scores:\n";
-            print "$score->[0], $score->[1], $score->[2], $score->[3], $score->[4], $score->[5]\n";
             UpdateScore($score->[0], $score->[1], $score->[2], $score->[3],
                         $score->[4], $score->[5]);
+            print "   $score->[0], $score->[1], $score->[2], $score->[3], $score->[4]";
+            if ($score->[5]) {
+               print " <=== DELETED\n";
+            } else {
+               print "\n";
+            }
          }
       }
    }
@@ -634,8 +639,6 @@ sub SaveScore
    $caliber =~ s/:/;/g;
    $score =~ s/:/;/g;
 
-   printf("Saving Score; $session $date $shooter $event $division $caliber $score\n");
-
    AddShooterEntry($shooter);
 
    my ($fname, $lname) = SplitName($shooter);
@@ -657,6 +660,18 @@ sub SaveScore
    AddCaliberEntry($caliber, \@calibers);
    $shooters_entry->selection('range', 0, 60);
    $shooters_entry->focus();
+
+   printf("Score Saved:\n".
+         "   $event $shooter $division $caliber $score league:$session/$date \n");
+}
+
+my $statustext;
+my $errortext;
+
+sub ClearStatus
+{
+    $statustext->delete('1.0','end');
+    $errortext->delete('1.0','end');
 }
 
 sub build_main_window
@@ -673,23 +688,48 @@ sub build_main_window
    }
 
    build_menubar($mw);
+   my $frame = $mw->Frame->pack(-side=>'bottom', -fill=>'x');
+
    
-   my $print_frame = $mw->Frame->pack(-side=>'bottom', -fill=>'x');
-   $print_frame->Label(-text => "Event")->grid(
-                     $print_frame->Label(-text => "Shooter"),
-                     $print_frame->Label(-text => "Division"),
-                     $print_frame->Label(-text => "Caliber"),
-                     $print_frame->Label(-text => "Score"),
+   my $status_frame = $frame->Frame->pack(-side=>'bottom', -fill=>'x');
+
+   $statustext = $status_frame->Scrolled('ROText',
+            -scrollbars => 'oe',
+            -height      => 10,
+             -background  => 'white',
+             -foreground  => 'black',
+             -width       => 100,
+             -wrap        => 'word')->pack();
+   tie *STDOUT, 'Tk::Text', $statustext;
+
+   $errortext = $status_frame->Scrolled('ROText',
+            -scrollbars => 'oe',
+            -height      => 10,
+             -background  => 'white',
+             -foreground  => 'red',
+             -width       => 100,
+             -wrap        => 'word')->pack();
+   tie *STDERR, 'Tk::Text', $errortext;
+
+   $status_frame->Button(-text => "Clear Status",
+                        -command => [\&ClearStatus])->pack();
+
+   my $enter_frame = $frame->Frame->pack(-side=>'top', -fill=>'x');
+   $enter_frame->Label(-text => "Event")->grid(
+                     $enter_frame->Label(-text => "Shooter"),
+                     $enter_frame->Label(-text => "Division"),
+                     $enter_frame->Label(-text => "Caliber"),
+                     $enter_frame->Label(-text => "Score"),
                       -sticky => "nsew");
 
-   my $event = $print_frame->Optionmenu(-options => \@events,
+   my $event = $enter_frame->Optionmenu(-options => \@events,
                                        -variable => \$event),
-   $shooters_entry = $print_frame->MatchEntry(-textvariable => \$shooter,
+   $shooters_entry = $enter_frame->MatchEntry(-textvariable => \$shooter,
                                              -ignorecase => 'true',
                                              -choices => \@shooters);
-   my $division = $print_frame->Optionmenu(-options => \@divisions,
+   my $division = $enter_frame->Optionmenu(-options => \@divisions,
                                        -variable => \$division),
-   $caliber_entry = $print_frame->MatchEntry(-textvariable => \$caliber,
+   $caliber_entry = $enter_frame->MatchEntry(-textvariable => \$caliber,
                                              -ignorecase => 'true',
                                              -choices => \@calibers);
 
@@ -697,8 +737,8 @@ sub build_main_window
                $shooters_entry,
                $division,
                $caliber_entry,
-               $print_frame->Entry(-textvariable => \$score),
-               $print_frame->Button(-text => "Save",
+               $enter_frame->Entry(-textvariable => \$score),
+               $enter_frame->Button(-text => "Save",
                            -command => [\&SaveScore, $shooter, $event, $division,
                                                       $caliber, $score]),
                    -sticky => "nsew");
@@ -711,7 +751,7 @@ sub build_main_window
    $mw{left} = int(($sw - $mw{width})/8);
    $mw{top} = int(($sh - $mw{height})/8);
    $mw->geometry("+".$mw{left}."+".$mw{top});
-   $mw->resizable(1,0);
+   $mw->resizable(0,0);
 }
 
 # main
