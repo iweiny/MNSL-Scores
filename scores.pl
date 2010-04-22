@@ -726,21 +726,11 @@ sub build_main_window
 
    my $event = $enter_frame->Optionmenu(-options => \@events,
                                        -variable => \$event),
-#   my $event = $enter_frame->JBrowseEntry(-choices => \@events,
-#                                       -state => 'readonly',
-#                                       -width => 5,
-#                                       -foreground => 'black',
-#                                       -variable => \$event),
    $shooters_entry = $enter_frame->MatchEntry(-textvariable => \$shooter,
                                              -ignorecase => 'true',
                                              -choices => \@shooters);
    my $division = $enter_frame->Optionmenu(-options => \@divisions,
                                        -variable => \$division),
-#   my $division = $enter_frame->JBrowseEntry(-choices => \@divisions,
-#                                       -state => 'readonly',
-#                                       -width => 10,
-#                                       -foreground => 'black',
-#                                       -variable => \$division),
    $caliber_entry = $enter_frame->MatchEntry(-textvariable => \$caliber,
                                              -ignorecase => 'true',
                                              -choices => \@calibers);
