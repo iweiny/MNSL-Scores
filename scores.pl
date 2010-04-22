@@ -29,10 +29,12 @@ $datadir = "$basedir/data";
 
 # Vars for UI
 @shooters = ("");
+$shooter;
 $shooters_entry = undef;
 @divisions = ();
 @calibers = ();
 $caliber_entry = undef;
+$caliber;
 $score_entry = undef;
 @events = ();
 # In the MenuBar
@@ -414,6 +416,21 @@ sub showGenComplete
    $win->Show;
 }
 
+sub EditCalibers
+{
+   my ($main) = @_;
+   my $old_cal;
+   my $new_cal;
+   my $win = $main->DialogBox(-title => "Edit Caliber", -buttons => ['OK', 'Cancel']);
+   $win->Label(-text=>"Change");
+   my $cal_entry = $win->MatchEntry(-textvariable => \$old_cal,
+                                             -ignorecase => 'true',
+                                             -choices => \@calibers);
+   $win->Label(-text=>"To");
+   my $cal_entry = $win->Entry(-textvariable => \$new_cal);
+
+}
+
 sub GetStartDate
 {
    my ($s) = @_;
@@ -630,6 +647,7 @@ sub build_menubar
    my $file_mb = $menu_bar->Menubutton(-text=>'Edit')->pack(-side=>'left');
    $file_mb->command(-label=>'Person...', -command => [\&EditPerson, $mw]);
    $file_mb->command(-label=>'Scores...', -command => [\&EditScores, $mw]);
+   #$file_mb->command(-label=>'Calibers...', -command => [\&EditCalibers, $mw]);
 
    my $date_mb = $menu_bar->Menubutton(-text=>'Date')->pack(-side=>'left');
    $date_mb->command(-label=>'Change Date...', -command => [\&ChangeDate, $mw]);
@@ -683,8 +701,8 @@ sub SaveScore
          "   $event, \"$shooter\", $division, $caliber, $score, $date, $session \n");
 
    $shooters_entry->selection('range', 0, 128);
-   $shooters_entry->delete('0.0', 'end');
-   $caliber_entry->delete('0.0', 'end');
+   $shooter = "";
+   $caliber = "";
    $score_entry->delete('0.0', 'end');
    $shooters_entry->focus();
 
