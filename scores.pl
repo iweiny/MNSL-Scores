@@ -416,19 +416,38 @@ sub showGenComplete
    $win->Show;
 }
 
-sub EditCalibers
+sub GetCaliberID
+{
+   my ($caliber) = @_;
+   my $sth = MNSLQuery::query("select id from caliber where name='$caliber';");
+   my @s = $sth->fetchrow_array;
+   return ($s[0]);
+}
+
+sub EditCaliber
 {
    my ($main) = @_;
    my $old_cal;
    my $new_cal;
-   my $win = $main->DialogBox(-title => "Edit Caliber", -buttons => ['OK', 'Cancel']);
-   $win->Label(-text=>"Change");
-   my $cal_entry = $win->MatchEntry(-textvariable => \$old_cal,
-                                             -ignorecase => 'true',
-                                             -choices => \@calibers);
-   $win->Label(-text=>"To");
-   my $cal_entry = $win->Entry(-textvariable => \$new_cal);
+   my $win = $main->DialogBox(-title => "Edit Caliber",
+                              -buttons => ['Change', 'Delete', 'Cancel']);
+   $win->Label(-text=>"Change")->pack;
+   my $division = $win->Optionmenu(-options=>\@calibers,
+                                       -variable=>\$old_cal)->pack;
+   $win->Label(-text=>"To")->pack;
+   my $cal_entry = $win->Entry(-textvariable => \$new_cal)->pack;
 
+   my $choice = $win->Show;
+   if ($choice eq 'Change') {
+      print ("Changing caliber \"$old_cal\" to \"$new_cal\"\n");
+      my $id = GetCaliberID($old_cal);
+      MNSLQuery::query("update caliber set name='$new_cal' where id='$id';");
+   } elsif ($choice eq 'Delete') {
+      print ("Deleting caliber \"$old_cal\"\n");
+      my $id = GetCaliberID($old_cal);
+      MNSLQuery::query("delete from caliber where id='$id';");
+   }
+   UpdateCaliberList();
 }
 
 sub GetStartDate
@@ -555,9 +574,18 @@ sub LoadShooterDB
    }
 }
 
+sub LoadCaliberDB
+{
+   $sth = MNSLQuery::query("select name from caliber;");
+   while (my @s = $sth->fetchrow_array) {
+      push (@calibers, @s);
+   }
+}
+
 sub LoadDBs
 {
    LoadShooterDB();
+   LoadCaliberDB();
 
    $sth = MNSLQuery::query("select name from event;");
    while (my @s = $sth->fetchrow_array) {
@@ -567,11 +595,6 @@ sub LoadDBs
    $sth = MNSLQuery::query("select name from division;");
    while (my @s = $sth->fetchrow_array) {
       push (@divisions, @s);
-   }
-
-   $sth = MNSLQuery::query("select name from caliber;");
-   while (my @s = $sth->fetchrow_array) {
-      push (@calibers, @s);
    }
 }
 
@@ -631,6 +654,13 @@ sub AddCaliberEntry
    print "Added: \"$caliber\"";
 }
 
+sub UpdateCaliberList
+{
+   @calibers = (); # clear
+   LoadCaliberDB(); # load
+   $caliber_entry->choices(\@calibers);
+}
+
 sub build_menubar
 {
    my ($mw) = @_;
@@ -647,7 +677,7 @@ sub build_menubar
    my $file_mb = $menu_bar->Menubutton(-text=>'Edit')->pack(-side=>'left');
    $file_mb->command(-label=>'Person...', -command => [\&EditPerson, $mw]);
    $file_mb->command(-label=>'Scores...', -command => [\&EditScores, $mw]);
-   #$file_mb->command(-label=>'Calibers...', -command => [\&EditCalibers, $mw]);
+   $file_mb->command(-label=>'Calibers...', -command => [\&EditCaliber, $mw]);
 
    my $date_mb = $menu_bar->Menubutton(-text=>'Date')->pack(-side=>'left');
    $date_mb->command(-label=>'Change Date...', -command => [\&ChangeDate, $mw]);
