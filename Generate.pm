@@ -7,6 +7,8 @@ use MNSLQuery;
 
 $VERSION     = 1.00;
 
+my $bg_grey = "#F0F0F0";
+
 my $tmp = "tmp";
 my @month_names = ("", "January", "Febuary", "March", "April", "May", "June",
                   "July", "August", "September", "October", "November", "December");
@@ -119,6 +121,27 @@ sub GetNameFromID
    return ("$res[0], $res[1]"); 
 }
 
+sub GetNameGendJunFromID
+{
+   my ($shid) = @_;
+   my $sth = MNSLQuery::query("select lname,fname,gender,junior from shooters ".
+                  "where id='$shid';");
+   my @res = $sth->fetchrow_array;
+   my @rc;
+   push(@rc, "$res[0], $res[1]");
+   if ($res[2]) { # 1 == Male
+      push(@rc, "&nbsp;");
+   } else {
+      push(@rc, "X");
+   }
+   if ($res[3]) {
+      push(@rc, "X");
+   } else {
+      push(@rc, "&nbsp;");
+   }
+   return (@rc);
+}
+
 # get scores for a single shooter-event-division-session
 # returned in order by date.
 sub GetScoresForShooter
@@ -188,6 +211,8 @@ sub HTML
             print HTML_FILE "<table>\n";
             print HTML_FILE "<tr>\n";
             print HTML_FILE "<th class=sname>Name</th>\n";
+            print HTML_FILE "<th class=flag>F</th>\n";
+            print HTML_FILE "<th class=flag>J</th>\n";
             print HTML_FILE "<th class=scorenum>1</th>\n";
             print HTML_FILE "<th class=scorenum>2</th>\n";
             print HTML_FILE "<th class=scorenum>3</th>\n";
@@ -206,8 +231,9 @@ sub HTML
             next;
          }
 
+         my $bgcolor = "#FFFFFF";
          foreach my $shid (@shooterids) {
-            my $name = GetNameFromID($shid);
+            my ($name,$gender,$junior) = GetNameGendJunFromID($shid);
             my @scores = GetScoresForShooter($shid, $eid, $did, $session);
 
             my $min1 = "500";
@@ -219,7 +245,14 @@ sub HTML
 
                # this takes care of printing an empty row when there are exactly 10 scores
                if (int($num) == 0) {
-                  print HTML_FILE "<tr><td>$name</td>";
+                  print HTML_FILE "<tr bgcolor=\"$bgcolor\"><td>$name</td>";
+                  if ($bgcolor eq "#FFFFFF") {
+                     $bgcolor=$bg_grey;
+                  } else {
+                     $bgcolor="#FFFFFF";
+                  }
+                  print HTML_FILE "<td>$gender</td>";
+                  print HTML_FILE "<td>$junior</td>";
                }
 
                print HTML_FILE "<td class=cl>$score</td>";
@@ -293,8 +326,8 @@ sub HTML
          print HTML_FILE "<td class=datelist><a href=\"#$date\">$hrdate</a></td>\n";
          $x++;
          if ($x == 7){
-         print HTML_FILE "<tr><tr>\n";
-	 $x = 0
+            print HTML_FILE "<tr><tr>\n";
+            $x = 0
          }
    }
    print HTML_FILE "</tr>\n";
@@ -326,6 +359,7 @@ sub HTML
                next;
             }
 
+            my $bgcolor = "#FFFFFF";
             foreach my $shid (@shooterids) {
                my $name = GetNameFromID($shid);
                my @scores = GetScoresForShooterDate($shid, $eid, $did, $session, $date);
@@ -334,7 +368,12 @@ sub HTML
                   next;
                }
 
-               print HTML_FILE "<tr>\n";
+               print HTML_FILE "<tr bgcolor=\"$bgcolor\">\n";
+               if ($bgcolor eq "#FFFFFF") {
+                  $bgcolor=$bg_grey;
+               } else {
+                  $bgcolor="#FFFFFF";
+               }
                print HTML_FILE "<td>$name</td>";
                foreach my $score (@scores) {
                   print HTML_FILE "<td>$score</td>";

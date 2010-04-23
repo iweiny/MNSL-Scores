@@ -30,6 +30,9 @@ th.sname {
 th.scorenum {
 	width:40px;
 }
+th.flag {
+	width:10px;
+}
 
 th.scoreavg {
 	width:100px;
