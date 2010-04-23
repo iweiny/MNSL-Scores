@@ -108,7 +108,7 @@ sub SplitName
 
 sub UpdateShooter
 {
-   my ($old, $fname, $lname, $email, $phone, $addr, $city, $st, $zip) = @_;
+   my ($old, $fname, $lname, $email, $phone, $addr, $city, $st, $zip, $gender, $junior) = @_;
 
    my ($old_fname, $old_lname) = SplitName($old);
 
@@ -119,7 +119,8 @@ sub UpdateShooter
             "select id,fname,lname from shooters where fname='$old_fname' and lname='$old_lname';");
    my @s = $sth->fetchrow_array;
    MNSLQuery::query("update shooters set fname='$fname',lname='$lname',email='$email',".
-                  "phone='$phone',address='$addr',city='$city',state='$st',zip='$zip' ".
+                  "phone='$phone',address='$addr',city='$city',state='$st',zip='$zip',".
+                  "gender='$gender',junior='$junior' ".
                   "where id='$s[0]';");
 }
 
@@ -172,6 +173,8 @@ sub EditPerson
          $city = $shooter[6];
          $st = $shooter[7];
          $zip = $shooter[8];
+         $gender = $shooter[9];
+         $junior = $shooter[10];
    
          my $dialog = $main->DialogBox(-title => "Enter New Shooter Info", -buttons => ["OK","Cancel"]);
          my $midframe = $dialog->Frame()->pack(-side=>'bottom');
@@ -183,6 +186,21 @@ sub EditPerson
                $midframe->Entry(-textvariable => \$lname));
          $midframe->Label(-text => "email")->grid(
                $midframe->Entry(-textvariable => \$email));
+
+         if ($gender eq 1) {
+            $gender = "Male";
+         } else {
+            $gender = "Female";
+         }
+
+         my @genders = ("Male", "Female");
+         $midframe->Label(-text => "Gender")->grid(
+               $midframe->Optionmenu(-options => \@genders,
+                                 -variable => \$gender));
+
+         $midframe->Label(-text => "Junior")->grid(
+               $midframe->Checkbutton(-variable => \$junior));
+
          $midframe->Label(-text => "phone")->grid(
                $midframe->Entry(-textvariable => \$phone));
          $midframe->Label(-text => "address")->grid(
@@ -193,6 +211,7 @@ sub EditPerson
                $midframe->Entry(-textvariable => \$state));
          $midframe->Label(-text => "zip")->grid(
                $midframe->Entry(-textvariable => \$zip));
+
          
          $foc->selection('range', 0, 60);
          $foc->focus();
@@ -213,10 +232,17 @@ sub EditPerson
                $win->Show();
                next;
             }
-            UpdateShooter($old_name, $fname, $lname, $email, $phone, $addr, $city, $st, $zip);
+            if ($gender eq "Male") {
+               $gender = 1;
+            } else {
+               $gender = 0;
+            }
+            UpdateShooter($old_name, $fname, $lname, $email, $phone, $addr,
+                        $city, $st, $zip, $gender, $junior);
             UpdateShooterList();
             print "Updated \"$old_name\":\n";
-            print "   \"$fname $lname\", $email, $phone, $addr, $city, $st, $zip\n";
+            print "   \"$fname $lname\", $email, $phone, $addr, $city, $st, ".
+                  "$zip, $gender, $junior\n";
             return;
          } else {
             return;
@@ -609,8 +635,10 @@ sub GetShooter
 {
    my ($name) = @_;
    my ($fname, $lname) = SplitName($name);
-   my $sth = MNSLQuery::query("select id,fname,lname,email,phone,address,city,state,zip ".
-                              "from shooters where fname='$fname' and lname='$lname';");
+   my $sth = MNSLQuery::query("select id,fname,lname,email,phone,address,".
+                              "city,state,zip,gender,junior ".
+                              "from shooters where fname='$fname' ".
+                              "and lname='$lname';");
    my @s = $sth->fetchrow_array;
    return (@s);
 }
