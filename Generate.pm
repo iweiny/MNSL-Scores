@@ -186,6 +186,18 @@ sub HaveScoresForEvDivDate
    return (scalar @rc > 0);
 }
 
+sub GetTableWidth
+{
+   my ($eid, $did, $session, $date) = @_;
+   my $sth = MNSLQuery::query("select max(colcount) from (".
+                           "select count(shooterid) as colcount ".
+                           "from scores where eid='$eid' and ".
+                           "dte='$date' and did='$did' ".
+                           "and leaguenum='$session' group by shooterid)t;");
+   my @rc = $sth->fetchrow_array;
+   return ($rc[0]);
+}
+
 #
 # HTML($session)
 # season == directory to generate file for.
@@ -359,6 +371,8 @@ sub HTML
                next;
             }
 
+            my $maxwidth = GetTableWidth($eid, $did, $session, $date);
+
             my $bgcolor = "#FFFFFF";
             foreach my $shid (@shooterids) {
                my $name = GetNameFromID($shid);
@@ -367,6 +381,8 @@ sub HTML
                if (scalar @scores < 1) {
                   next;
                }
+
+               my $width = $maxwidth;
 
                print HTML_FILE "<tr bgcolor=\"$bgcolor\">\n";
                if ($bgcolor eq "#FFFFFF") {
@@ -377,6 +393,11 @@ sub HTML
                print HTML_FILE "<td>$name</td>";
                foreach my $score (@scores) {
                   print HTML_FILE "<td>$score</td>";
+                  $width--;
+               }
+               while ($width > 0) {
+                  print HTML_FILE "<td>&nbsp;</td>";
+                  $width--;
                }
                print HTML_FILE "\n</tr>\n";
             }
