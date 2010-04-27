@@ -41,6 +41,15 @@ $score_entry = undef;
 $mb_date = undef;
 $mb_session = undef;
 
+sub DisplayError
+{
+   my ($mw, $msg) = @_;
+   print STDERR $msg;
+   my $win = $mw->DialogBox(-title => "ERROR!", -buttons => ["Ok"]);
+   $win->Label(-text => "Error: $msg")->pack();
+   $win->Show();
+}
+
 sub InvalidSession
 {
    my ($s) = @_;
@@ -726,13 +735,46 @@ my $score = "";
 
 sub SaveScore
 {
+   my ($mw) = @_;
+
    $shooter =~ s/:/;/g;
    $caliber =~ s/:/;/g;
    $score =~ s/:/;/g;
 
-   if ($score < 0 || $score > 480) {
-      print STDERR "Score is invalid: $score must be between 1 and 480\n";
+   if ($score <= 0 || $score > 480) {
+      DisplayError($mw, "Score is invalid: $score is not between 1 and 480\n");
+      $score_entry->selection('range', 0, 128);
+      $score_entry->focus();
       return;
+   }
+
+   if ($shooter eq "") {
+      DisplayError($mw, "Shooter field is blank: please enter a shooter name\n");
+      $shooters_entry->selection('range', 0, 128);
+      $shooters_entry->focus();
+      return;
+   }
+
+   if ($division eq "Prod") {
+      if ($caliber eq ".22") {
+         DisplayError($mw,
+            ".22's are not allowed in $division\n");
+         $caliber_entry->selection('range', 0, 128);
+         $caliber_entry->focus();
+         return;
+      }
+   }
+
+   if ($caliber eq "") {
+      if ($division ne "22") {
+         DisplayError($mw,
+            "Caliber field is blank and Division is not 22 : please enter a caliber\n");
+         $caliber_entry->selection('range', 0, 128);
+         $caliber_entry->focus();
+         return;
+      } else {
+         $caliber = ".22";
+      }
    }
 
    AddShooterEntry($shooter);
@@ -818,8 +860,7 @@ sub build_main_window
                $caliber_entry,
                $score_entry,
                $enter_frame->Button(-text => "Save",
-                           -command => [\&SaveScore, $shooter, $event, $division,
-                                                      $caliber, $score]),
+                           -command => [\&SaveScore, $mw]),
                    -sticky => "nsew");
 
    $shooters_entry->selection('range', 0, 60);
