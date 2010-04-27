@@ -769,6 +769,14 @@ sub SaveScore
       }
    }
 
+   if ($division eq "22" and $caliber ne ".22") {
+      DisplayError($mw,
+         "$caliber is not allowed in $division\n");
+      $caliber_entry->selection('range', 0, 128);
+      $caliber_entry->focus();
+      return;
+   }
+
    if ($caliber eq "") {
       if ($division ne "22") {
          DisplayError($mw,
