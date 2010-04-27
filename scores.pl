@@ -10,6 +10,7 @@ use Tk::BrowseEntry;
 use Tk::JBrowseEntry;
 use Tk::DateEntry;
 use Tk::ROText;
+use Tk::Pane;
 
 
 use Generate;
@@ -332,7 +333,10 @@ sub ViewScores
       $win->Label(-text => "Scores for $hrdate")->pack(-side => 'top', -fill => 'x');
       my $main_frame = $win->Frame->pack(-side=>'bottom', -fill=>'x');
 
-      my $print_frame = $main_frame->Frame->pack(-side=>'top', -fill=>'x');
+      my $print_frame = $main_frame->Scrolled('Frame',
+                                       -width => 400, -height => 400,
+                                       -scrollbars => 'e');
+      $print_frame->pack(-side=>'top', -fill=>'x');
       $print_frame->Label(-text => "Name")->grid(
                      $print_frame->Label(-text => "Event"),
                      $print_frame->Label(-text => "Division"),
