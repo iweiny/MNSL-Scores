@@ -168,6 +168,22 @@ sub GetScoresForShooterDate
    return (@rc);
 }
 
+sub GetScoresForShooterDate2
+{
+   my ($shid, $session, $date) = @_;
+   my ($q) = @_;
+   my $sth = MNSLQuery::query("select e.name,d.name,cal,score from scores as s, ".
+                  "event as e, division as d ".
+                  "where shooterid='$shid' and e.id=eid and d.id=did ".
+                  "and leaguenum='$session' and dte='$date' ".
+                  "order by s.id;");
+   my @rc;
+   while (my @res = $sth->fetchrow_array) {
+      push (@rc, "$res[0]-$res[1] $res[2]/$res[3]");
+   }
+   return (@rc);
+}
+
 sub HaveScoresForEvDiv
 {
    my ($eid, $did, $session) = @_;
@@ -196,6 +212,148 @@ sub GetTableWidth
                            "and leaguenum='$session' group by shooterid)t;");
    my @rc = $sth->fetchrow_array;
    return ($rc[0]);
+}
+
+sub GetTableWidth2
+{
+   my ($session, $date) = @_;
+   my $sth = MNSLQuery::query("select max(colcount) from (".
+                           "select count(shooterid) as colcount ".
+                           "from scores where ".
+                           "dte='$date' ".
+                           "and leaguenum='$session' group by shooterid)t;");
+   my @rc = $sth->fetchrow_array;
+   return ($rc[0]);
+}
+
+sub PrintDayScores
+{
+   my ($file, $session) = @_;
+
+   my @shooterids = GetShooters($session);
+   my @eids = GetEids();
+   my @dids = GetDids();
+
+   my @dates = GetDatesRev($session);
+
+   # print scores by Days
+   foreach my $date (@dates) {
+      my $hrdate = ConvertDateHR($date);
+
+      # print the scores for this day for each person
+      print $file "\n<hr><a name=\"$date\"><h2>$hrdate</h2></a>\n";
+      print $file "<a href=#top> TOP </a>\n";
+
+      foreach my $eid (@eids) {
+         foreach my $did (@dids) {
+            my $event = GetEventFromID($eid);
+            my $division = GetDivisionFromID($did);
+
+            if (HaveScoresForEvDivDate($eid, $did, $session, $date)) {
+               print $file "<h3>$event -- $division</h3>\n";
+               print $file "<table cellpadding='5' border='1'>\n";
+               print $file "<tr>\n";
+               print $file "<th class=sname>Name</th>\n";
+               print $file "<th colspan=10 align=left>Scores cal/score</th>\n";
+               print $file "</tr>\n";
+            } else {
+               next;
+            }
+
+            my $maxwidth = GetTableWidth($eid, $did, $session, $date);
+
+            my $bgcolor = "#FFFFFF";
+            foreach my $shid (@shooterids) {
+               my $name = GetNameFromID($shid);
+               my @scores = GetScoresForShooterDate($shid, $eid, $did, $session, $date);
+
+               if (scalar @scores < 1) {
+                  next;
+               }
+
+               my $width = $maxwidth;
+
+               print $file "<tr bgcolor=\"$bgcolor\">\n";
+               if ($bgcolor eq "#FFFFFF") {
+                  $bgcolor=$bg_grey;
+               } else {
+                  $bgcolor="#FFFFFF";
+               }
+               print $file "<td>$name</td>";
+               foreach my $score (@scores) {
+                  print $file "<td>$score</td>";
+                  $width--;
+               }
+               while ($width > 0) {
+                  print $file "<td>&nbsp;</td>";
+                  $width--;
+               }
+               print $file "\n</tr>\n";
+            }
+            print $file "</table>\n";
+         }
+      }
+   }
+}
+
+sub PrintDayScores2
+{
+   my ($file, $session) = @_;
+
+   my @shooterids = GetShooters($session);
+   my @eids = GetEids();
+   my @dids = GetDids();
+
+   my @dates = GetDatesRev($session);
+
+   # print scores by Days
+   foreach my $date (@dates) {
+      my $hrdate = ConvertDateHR($date);
+
+      # print the scores for this day for each person
+      print $file "\n<hr><a name=\"$date\"><h2>$hrdate</h2></a>\n";
+      print $file "<a href=#top> TOP </a>\n";
+
+      print $file "<table cellpadding='5' border='1'>\n";
+      print $file "<tr>\n";
+      print $file "<th class=sname>Name</th>\n";
+      print $file "<th colspan=10 align=left>Scores -- Event-Div Cal/Score</th>\n";
+      print $file "</tr>\n";
+
+      my $maxwidth = GetTableWidth2($session, $date);
+
+      my $bgcolor = "#FFFFFF";
+      foreach my $shid (@shooterids) {
+         my @scores = GetScoresForShooterDate2($shid, $session, $date);
+
+         if (scalar @scores < 1) {
+            next;
+         }
+
+         print $file "<tr bgcolor=\"$bgcolor\">\n";
+         if ($bgcolor eq "#FFFFFF") {
+            $bgcolor=$bg_grey;
+         } else {
+            $bgcolor="#FFFFFF";
+         }
+
+         my $name = GetNameFromID($shid);
+
+         print $file "<td>$name</td>";
+
+         my $width = $maxwidth;
+         foreach my $score (@scores) {
+            print $file "<td>$score</td>";
+            $width--;
+         }
+         while ($width > 0) {
+            print $file "<td>&nbsp;</td>";
+            $width--;
+         }
+         print $file "\n</tr>\n";
+      }
+      print $file "</table>\n";
+   }
 }
 
 #
@@ -345,66 +503,8 @@ sub HTML
    print HTML_FILE "</tr>\n";
    print HTML_FILE "</table>\n";
 
-   my @dates = GetDatesRev($session);
-
-   # print scores by Days
-   foreach my $date (@dates) {
-      my $hrdate = ConvertDateHR($date);
-
-      # print the scores for this day for each person
-      print HTML_FILE "\n<hr><a name=\"$date\"><h2>$hrdate</h2></a>\n";
-      print HTML_FILE "<a href=#top> TOP </a>\n";
-
-      foreach my $eid (@eids) {
-         foreach my $did (@dids) {
-            my $event = GetEventFromID($eid);
-            my $division = GetDivisionFromID($did);
-
-            if (HaveScoresForEvDivDate($eid, $did, $session, $date)) {
-               print HTML_FILE "<h3>$event -- $division</h3>\n";
-               print HTML_FILE "<table cellpadding='5' border='1'>\n";
-               print HTML_FILE "<tr>\n";
-               print HTML_FILE "<th class=sname>Name</th>\n";
-               print HTML_FILE "<th colspan=10 align=left>Scores cal/score</th>\n";
-               print HTML_FILE "</tr>\n";
-            } else {
-               next;
-            }
-
-            my $maxwidth = GetTableWidth($eid, $did, $session, $date);
-
-            my $bgcolor = "#FFFFFF";
-            foreach my $shid (@shooterids) {
-               my $name = GetNameFromID($shid);
-               my @scores = GetScoresForShooterDate($shid, $eid, $did, $session, $date);
-
-               if (scalar @scores < 1) {
-                  next;
-               }
-
-               my $width = $maxwidth;
-
-               print HTML_FILE "<tr bgcolor=\"$bgcolor\">\n";
-               if ($bgcolor eq "#FFFFFF") {
-                  $bgcolor=$bg_grey;
-               } else {
-                  $bgcolor="#FFFFFF";
-               }
-               print HTML_FILE "<td>$name</td>";
-               foreach my $score (@scores) {
-                  print HTML_FILE "<td>$score</td>";
-                  $width--;
-               }
-               while ($width > 0) {
-                  print HTML_FILE "<td>&nbsp;</td>";
-                  $width--;
-               }
-               print HTML_FILE "\n</tr>\n";
-            }
-            print HTML_FILE "</table>\n";
-         }
-      }
-   }
+   #PrintDayScores(\*HTML_FILE, $session);
+   PrintDayScores2(\*HTML_FILE, $session);
 
    write_html_footer(\*HTML_FILE);
    close(HTML_FILE);
