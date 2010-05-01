@@ -134,6 +134,25 @@ sub UpdateShooter
                   "where id='$s[0]';");
 }
 
+sub GetNumScoresForID
+{
+   my ($id) = @_;
+   my $sth = MNSLQuery::query(
+            "select count(id) from scores where shooterid='$id';");
+   my @s = $sth->fetchrow_array;
+   if (scalar @s < 1) {
+      return (0);
+   }
+   return ($s[0]);
+}
+
+sub DeleteShooter
+{
+   my ($id) = @_;
+   my $sth = MNSLQuery::query("delete from shooters where id='$id';");
+   my $sth = MNSLQuery::query("delete from scores where shooterid='$id';");
+}
+
 sub EditPerson
 {
    my ($main) = @_;
@@ -147,7 +166,7 @@ sub EditPerson
    my $st = "";
    my $zip = "";
 
-   my $dialog = $main->DialogBox(-title => "Change Name", -buttons => ["OK","Cancel"]);
+   my $dialog = $main->DialogBox(-title => "Edit Person", -buttons => ["OK","Cancel"]);
    my $topframe = $dialog->Frame()->pack(-side=>'top');
    $topframe->Label(-text => "Change:")->pack(-side=>'left');
    my $sh_ent = $topframe->MatchEntry(-textvariable => \$old_name,
@@ -186,7 +205,8 @@ sub EditPerson
          $gender = $shooter[9];
          $junior = $shooter[10];
    
-         my $dialog = $main->DialogBox(-title => "Enter New Shooter Info", -buttons => ["OK","Cancel"]);
+         my $dialog = $main->DialogBox(-title => "Enter New Shooter Info",
+                                       -buttons => ["OK","Cancel","DELETE"]);
          my $midframe = $dialog->Frame()->pack(-side=>'bottom');
          
          my $foc = $midframe->Entry(-textvariable => \$fname);
@@ -255,6 +275,20 @@ sub EditPerson
                   "$zip, $gender, $junior\n";
             return;
          } else {
+            if ($choice eq "DELETE") {
+               my $count = GetNumScoresForID($id);
+               my $win = $main->DialogBox(-title => 'Confirm Delete',
+                                       -buttons => ["OK", "Cancel"]);
+               $win->Label(-text => "Delete $fname $lname from the database?\n".
+                                 "$count score(s) will be deleted as well.\n")
+                           ->pack();
+               my $choice = $win->Show();
+               if ($choice eq "OK") {
+                  DeleteShooter($id);
+                  UpdateShooterList();
+                  print "Deleted \"$old_name\";\n";
+               }
+            }
             return;
          }
       }
