@@ -302,7 +302,8 @@ sub GetScoresDayShooter
    my $sth = MNSLQuery::query("select s.id, e.name, d.name, s.cal, s.score ".
                      "from scores as s, shooters as sh, event as e, division as d ".
                      "where s.eid=e.id and s.did=d.id and s.shooterid=sh.id ".
-                     "and sh.fname='$fname' and sh.lname='$lname' and dte='$date';");
+                     "and sh.fname='$fname' and sh.lname='$lname' and dte='$date'
+                     order by dte,id;");
    my @rc;
    while (my @res = $sth->fetchrow_array) {
       push (@rc, \@res);
