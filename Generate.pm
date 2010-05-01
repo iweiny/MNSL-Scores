@@ -459,16 +459,22 @@ sub HTML
                      $min1 = $min2;
                   }
                   $avg -= $min1;
+                  $min2 = 500; # flag as not used.
                   $avg /= 8;
                } else {
                   $avg /= $num;
+                  $min1 = $min2 = 500; # flag as not used.
                }
                while ($num < 10) {
                   print HTML_FILE "<td>&nbsp;</td>";
                   $num++;
                }
                printf HTML_FILE "<td class=cl>%03.02f</td>", $avg;
-               print HTML_FILE "<td class=cl>$min1</td>";
+               if ($min1 != 500) {
+                  print HTML_FILE "<td class=cl>$min1</td>";
+               } else {
+                  print HTML_FILE "<td class=cl>&nbsp;</td>\n";
+               }
                if ($min2 != 500) {
                   print HTML_FILE "<td class=cl>$min2</td></tr>\n";
                } else {
@@ -487,7 +493,7 @@ sub HTML
    my $x = 0;
    # for each date write header with quick links
    print HTML_FILE "<hr><br>";
-   print HTML_FILE "Click below (or scroll down) for scores on individual days<p>\n";
+   print HTML_FILE "Click below (or scroll down) to verify your scores on individual days<p>\n";
    print HTML_FILE "<table class=datelist>\n";
    print HTML_FILE "<tr  class=datelist>\n";
    foreach my $date (@dates) {
