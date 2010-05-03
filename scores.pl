@@ -118,7 +118,8 @@ sub SplitName
 
 sub UpdateShooter
 {
-   my ($old, $fname, $lname, $email, $phone, $addr, $city, $st, $zip, $gender, $junior) = @_;
+   my ($old, $fname, $lname, $email, $phone, $addr, $city, $st, $zip, $gender,
+      $junior, $staff) = @_;
 
    my ($old_fname, $old_lname) = SplitName($old);
 
@@ -130,7 +131,7 @@ sub UpdateShooter
    my @s = $sth->fetchrow_array;
    MNSLQuery::query("update shooters set fname='$fname',lname='$lname',email='$email',".
                   "phone='$phone',address='$addr',city='$city',state='$st',zip='$zip',".
-                  "gender='$gender',junior='$junior' ".
+                  "gender='$gender',junior='$junior',staff='$staff' ".
                   "where id='$s[0]';");
 }
 
@@ -204,6 +205,7 @@ sub EditPerson
          $zip = $shooter[8];
          $gender = $shooter[9];
          $junior = $shooter[10];
+         $staff = $shooter[11];
    
          my $dialog = $main->DialogBox(-title => "Enter New Shooter Info",
                                        -buttons => ["OK","Cancel","DELETE"]);
@@ -230,6 +232,9 @@ sub EditPerson
 
          $midframe->Label(-text => "Junior")->grid(
                $midframe->Checkbutton(-variable => \$junior));
+
+         $midframe->Label(-text => "Staff")->grid(
+               $midframe->Checkbutton(-variable => \$staff));
 
          $midframe->Label(-text => "phone")->grid(
                $midframe->Entry(-textvariable => \$phone));
@@ -268,7 +273,7 @@ sub EditPerson
                $gender = 0;
             }
             UpdateShooter($old_name, $fname, $lname, $email, $phone, $addr,
-                        $city, $st, $zip, $gender, $junior);
+                        $city, $st, $zip, $gender, $junior, $staff);
             UpdateShooterList();
             print "Updated \"$old_name\":\n";
             print "   \"$fname $lname\", $email, $phone, $addr, $city, $st, ".
@@ -684,7 +689,7 @@ sub GetShooter
    my ($name) = @_;
    my ($fname, $lname) = SplitName($name);
    my $sth = MNSLQuery::query("select id,fname,lname,email,phone,address,".
-                              "city,state,zip,gender,junior ".
+                              "city,state,zip,gender,junior,staff ".
                               "from shooters where fname='$fname' ".
                               "and lname='$lname';");
    my @s = $sth->fetchrow_array;
