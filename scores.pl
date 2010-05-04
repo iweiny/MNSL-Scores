@@ -869,6 +869,18 @@ sub ClearStatus
     $errortext->delete('1.0','end');
 }
 
+sub SetCaliberBasedOnDiv
+{
+   my ($div) = @_;
+   if ($div eq "22") {
+      $caliber = ".22";
+   }
+   if ($div eq "Prod" && $caliber eq ".22") {
+      $caliber = "";
+      $caliber_entry->selection('range', 0, 128);
+   }
+}
+
 sub build_main_window
 {
    LoadDBs();
@@ -900,6 +912,7 @@ sub build_main_window
                                              -ignorecase => 'true',
                                              -choices => \@shooters);
    my $division = $enter_frame->Optionmenu(-options => \@divisions,
+                                       -command=>\&SetCaliberBasedOnDiv,
                                        -variable => \$division),
    $caliber_entry = $enter_frame->MatchEntry(-textvariable => \$caliber,
                                              -ignorecase => 'true',
