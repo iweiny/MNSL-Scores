@@ -42,7 +42,7 @@ th.scoreminmax {
 	width:100px;
 }
 /*The next 3 styles are for the listing of the dates at the bottom of the main scores*/
-table.datelist 
+table.datelist
 {
 border:3px solid grey;
 padding:15px;
@@ -54,16 +54,14 @@ padding-right:50px;
 padding-left:50px;*/
 }
 
-/*tr.datelist 
+table.datelist
 {
+margin: 10px 20px 20px 0px;
+}
 
-}
-*/
 td.datelist
-{
-width:175px;
-text-align:center;
-}
+{ background-color: orange; text-align:center; padding: 6px 12px 6px 12px; }
+
 
 .pageheader {
 font-size:40px;

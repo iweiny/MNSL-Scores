@@ -24,6 +24,7 @@ $db = "";
 $session = ();
 $session_st = ();
 $date = ();
+$html_base = "";
 $basedir = dirname(abs_path($0));
 $conf = "$basedir/scores.conf";
 $datadir = "$basedir/data";
@@ -545,7 +546,7 @@ sub GenHTML
    my $sdate = GetStartDate($session);
    my $file = "$datadir/Session$session-$sdate.html";
 
-   Generate::HTML($file, $session, $sdate);
+   Generate::HTML($file, $session, $sdate, $html_base);
 
    my $win = $main->DialogBox(-title => "Generate HTML Complete",
                   -buttons => ['OK', 'View in Firefox']);
@@ -589,7 +590,7 @@ sub ReadConfig
    while (<FILE>) {
       chomp $_;
       $_ =~ s/\s+//;
-      my ($var, $value) = split /:/, $_;
+      my ($var, $value) = split /=/, $_;
       if ("$var" eq "db_user") {
          $dbuser = $value;
       }
@@ -601,6 +602,9 @@ sub ReadConfig
       }
       if ("$var" eq "session") {
          $session = $value;
+      }
+      if ("$var" eq "html_base") {
+         $html_base = $value;
       }
    }
    close (FILE);
@@ -614,10 +618,11 @@ sub ReadConfig
 sub WriteConfig
 {
    open FILE, "+>$conf" or die "Could not write config \"$conf\"\n";
-   print FILE "db_user: $dbuser\n";
-   print FILE "db_pw:   $dbpw\n";
-   print FILE "db:      $db\n";
-   print FILE "session: $session\n";
+   print FILE "db_user= $dbuser\n";
+   print FILE "db_pw=   $dbpw\n";
+   print FILE "db=      $db\n";
+   print FILE "session= $session\n";
+   print FILE "html_base= $html_base\n";
    close (FILE);
 }
 

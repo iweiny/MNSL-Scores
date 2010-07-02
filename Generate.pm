@@ -15,7 +15,7 @@ my @month_names = ("", "January", "Febuary", "March", "April", "May", "June",
 
 sub write_html_header
 {
-   my ($file, $session, $sdate) = @_;
+   my ($file, $session, $sdate, $date, $week) = @_;
    my $hrdate = ConvertDateHR($sdate);
 
    print $file "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\n";   
@@ -27,10 +27,10 @@ sub write_html_header
    print $file "@lines";
    close MYDATA;
    print $file "</head>\n";
-   print $file "<title>MNSL Scores -- Season $session (Started: $hrdate); </title>\n";
+   print $file "<title>MNSL Scores -- Season $session; Week $week(Started: $hrdate); </title>\n";
    print $file "<body>\n";
    print $file "<a name=top>\n";  
-   print $file "<div class=pageheader>MNSL Scores -- Season $session (Started: $hrdate)</div>\n";
+   print $file "<div class=pageheader>Season $session; Week $week ($date) [Start: $hrdate]</div>\n";
 }
 
 sub write_html_footer
@@ -228,7 +228,7 @@ sub GetTableWidth2
 
 sub PrintDayScores
 {
-   my ($file, $session) = @_;
+   my ($file, $session, $html_base) = @_;
 
    my @shooterids = GetShooters($session);
    my @eids = GetEids();
@@ -242,7 +242,7 @@ sub PrintDayScores
 
       # print the scores for this day for each person
       print $file "\n<hr><a name=\"$date\"><h2>$hrdate</h2></a>\n";
-      print $file "<a href=#top> TOP </a>\n";
+      print $file "<a href=$html_base#top> TOP </a>\n";
 
       foreach my $eid (@eids) {
          foreach my $did (@dids) {
@@ -361,15 +361,18 @@ sub PrintDayScores2
 # season == directory to generate file for.
 sub HTML
 {
-   my ($html, $session, $sdate) = @_;
+   my ($html, $session, $sdate, $html_base) = @_;
 
    open HTML_FILE, ">$html" or die "could not open $html";
-   write_html_header(\*HTML_FILE, $session, $sdate);
+
+   # get a list of dates for this session.
+   my @dates = GetDates($session);
+
+   write_html_header(\*HTML_FILE, $session, $sdate, ConvertDateHR($dates[(scalar @dates) - 1]), scalar(@dates));
 
    my @shooterids = GetShooters($session);
    my @eids = GetEids();
    my @dids = GetDids();
-
 
    foreach my $eid (@eids) {
       foreach my $did (@dids) {
@@ -488,29 +491,26 @@ sub HTML
       }
    }
 
-   # get a list of dates for this session.
-   my @dates = GetDates($session);
+   # we have a list of dates for this session from above.  Print those dates with week numbers.
    my $x = 0;
    # for each date write header with quick links
    print HTML_FILE "<hr><br>";
    print HTML_FILE "Click below (or scroll down) to verify your scores on individual days<p>\n";
-   print HTML_FILE "<table class=datelist>\n";
-   print HTML_FILE "<tr  class=datelist>\n";
+   print HTML_FILE "</p><table class=\"steggy\">\n";
+   print HTML_FILE "<tbody><tr  class=\"steggy\">\n";
+   print HTML_FILE "<td class=\"datelist\">\n";
+   my $i=1;
    foreach my $date (@dates) {
          my $hrdate = ConvertDateHR($date);
          # print the header for this
-         print HTML_FILE "<td class=datelist><a href=\"#$date\">$hrdate</a></td>\n";
-         $x++;
-         if ($x == 7){
-            print HTML_FILE "<tr><tr>\n";
-            $x = 0
-         }
+         print HTML_FILE "<a href=\"$html_base#$date\">$hrdate (Wk: $i)</a> &nbsp;|&nbsp;\n";
+         $i++;
    }
    print HTML_FILE "</tr>\n";
-   print HTML_FILE "</table>\n";
+   print HTML_FILE "</tbody></table>\n";
 
    #PrintDayScores(\*HTML_FILE, $session);
-   PrintDayScores2(\*HTML_FILE, $session);
+   PrintDayScores2(\*HTML_FILE, $session, $html_base);
 
    write_html_footer(\*HTML_FILE);
    close(HTML_FILE);
