@@ -29,6 +29,10 @@ $basedir = dirname(abs_path($0));
 $conf = "$basedir/scores.conf";
 $datadir = "$basedir/data";
 
+# Report version right from the get go.
+print "Version: ";
+system("cat VERSION");
+
 # Vars for UI
 @shooters = ("");
 $shooter;
