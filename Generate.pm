@@ -356,6 +356,37 @@ sub PrintDayScores2
    }
 }
 
+sub write_table_header
+{
+   my ($file, $event, $division) = @_;
+
+   print $file "<h3>$event -- $division</h3>\n";
+   print $file "<table>\n";
+   print $file "<tr>\n";
+   print $file "<th class=sname>Name</th>\n";
+   print $file "<th class=flag>F</th>\n";
+   print $file "<th class=flag>J</th>\n";
+   print $file "<th class=scorenum>1</th>\n";
+   print $file "<th class=scorenum>2</th>\n";
+   print $file "<th class=scorenum>3</th>\n";
+   print $file "<th class=scorenum>4</th>\n";
+   print $file "<th class=scorenum>5</th>\n";
+   print $file "<th class=scorenum>6</th>\n";
+   print $file "<th class=scorenum>7</th>\n";
+   print $file "<th class=scorenum>8</th>\n";
+   print $file "<th class=scorenum>9</th>\n";
+   print $file "<th class=scorenum>10</th>\n";
+   print $file "<th class=scoreavg>Avg</th>\n";
+   print $file "<th class=scoreminmax>Min 1</th>\n";
+   print $file "<th class=scoreminmax>Min 2</th>\n";
+   print $file "</tr>\n";
+}
+
+sub HTML_Final
+{
+# place holder for output function for final scores
+}
+
 #
 # HTML($session)
 # season == directory to generate file for.
@@ -380,26 +411,7 @@ sub HTML
          my $division = GetDivisionFromID($did);
 
          if (HaveScoresForEvDiv($eid, $did, $session)) {
-            print HTML_FILE "<h3>$event -- $division</h3>\n";
-            print HTML_FILE "<table>\n";
-            print HTML_FILE "<tr>\n";
-            print HTML_FILE "<th class=sname>Name</th>\n";
-            print HTML_FILE "<th class=flag>F</th>\n";
-            print HTML_FILE "<th class=flag>J</th>\n";
-            print HTML_FILE "<th class=scorenum>1</th>\n";
-            print HTML_FILE "<th class=scorenum>2</th>\n";
-            print HTML_FILE "<th class=scorenum>3</th>\n";
-            print HTML_FILE "<th class=scorenum>4</th>\n";
-            print HTML_FILE "<th class=scorenum>5</th>\n";
-            print HTML_FILE "<th class=scorenum>6</th>\n";
-            print HTML_FILE "<th class=scorenum>7</th>\n";
-            print HTML_FILE "<th class=scorenum>8</th>\n";
-            print HTML_FILE "<th class=scorenum>9</th>\n";
-            print HTML_FILE "<th class=scorenum>10</th>\n";
-            print HTML_FILE "<th class=scoreavg>Avg</th>\n";
-            print HTML_FILE "<th class=scoreminmax>Min 1</th>\n";
-            print HTML_FILE "<th class=scoreminmax>Min 2</th>\n";
-            print HTML_FILE "</tr>\n";
+            write_table_header(\*HTML_FILE, $event, $division);
          } else {
             next;
          }
@@ -414,6 +426,7 @@ sub HTML
             my $avg = 0;
             my $num = 0;
 
+            # if there are no scores for this shooter this loop will not run!
             foreach my $score (@scores) {
 
                # this takes care of printing an empty row when there are exactly 10 scores
