@@ -306,12 +306,14 @@ sub PrintDayScores2
 
    my @dates = GetDatesRev($session);
 
+   my $i = scalar(@dates);
    # print scores by Days
    foreach my $date (@dates) {
       my $hrdate = ConvertDateHR($date);
 
       # print the scores for this day for each person
-      print $file "\n<hr><a name=\"$date\"><h2>$hrdate</h2></a>\n";
+      print $file "\n<hr><a name=\"$date\"><h2>$hrdate (Week: $i)</h2></a>\n";
+      $i--;
       print $file "<a href=#top> TOP </a>\n";
 
       print $file "<table cellpadding='5' border='1'>\n";
