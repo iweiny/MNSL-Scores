@@ -384,9 +384,68 @@ sub write_table_header
    print $file "</tr>\n";
 }
 
-sub HTML_Final
+sub process_scores
 {
-# place holder for output function for final scores
+   my @scores = @_;
+   my $avg = 0;
+   my $num = 0;
+   my $min1 = 500;
+   my $min2 = 500;
+   my @rc;
+   my $i = 0;
+
+   foreach my $score (@scores) {
+
+      if ($score < $min2) {
+         if ($score < $min1) {
+            $min2 = $min1;
+            $min1 = $score;
+         } else {
+            $min2 = $score;
+         }
+      }
+      $avg += $score;
+      push (@{$rc[$i]{'scores'}}, $score);
+
+      $num++;
+
+      if ($num == 10) {
+         $avg -= $min1;
+         $avg -= $min2;
+         $avg /= 8;
+
+         $rc[$i]{'avg'} = $avg;
+         $rc[$i]{'min1'} = $min1;
+         $rc[$i]{'min2'} = $min2;
+         $rc[$i]{'qual'} = "true";
+         $i++;
+
+         $avg = 0;
+         $num = 0;
+         $min1 = 500;
+         $min2 = 500;
+      }
+   }
+
+   if ($num != 0) {
+      if ($num >= 8) {
+         $rc[$i]{'qual'} = "true";
+      }
+      if ($num == 9) {
+         if ($min2 < $min1) {
+            $min1 = $min2;
+         }
+         $avg -= $min1;
+         $rc[$i]{'min1'} = $min1;
+         $avg /= 8;
+      } else {
+         $avg /= $num;
+      }
+
+      $rc[$i]{'avg'} = $avg;
+   }
+
+   return (@rc);
 }
 
 #
@@ -423,83 +482,46 @@ sub HTML
             my ($name,$gender,$junior) = GetNameGendJunFromID($shid);
             my @scores = GetScoresForShooter($shid, $eid, $did, $session);
 
-            my $min1 = "500";
-            my $min2 = "500";
-            my $avg = 0;
-            my $num = 0;
+            my @proc_scores = process_scores(@scores);
+            foreach my $set (@proc_scores) {
+               my %h = %{$set};
+               my @tmp = @{$h{'scores'}};
+               my $avg = $h{'avg'};
+               my $min1 = $h{'min1'};
+               my $min2 = $h{'min2'};
+               my $qual = $h{'qual'};
 
-            # if there are no scores for this shooter this loop will not run!
-            foreach my $score (@scores) {
+               #debug: print "$name : @tmp : $avg : $min1 : $min2 : $qual\n";
 
-               # this takes care of printing an empty row when there are exactly 10 scores
-               if (int($num) == 0) {
-                  print HTML_FILE "<tr bgcolor=\"$bgcolor\"><td>$name</td>";
-                  if ($bgcolor eq "#FFFFFF") {
-                     $bgcolor=$bg_grey;
-                  } else {
-                     $bgcolor="#FFFFFF";
-                  }
-                  print HTML_FILE "<td>$gender</td>";
-                  print HTML_FILE "<td>$junior</td>";
-               }
-
-               print HTML_FILE "<td class=cl>$score</td>";
-
-               if ($score < $min2) {
-                  if ($score < $min1) {
-                     $min2 = $min1;
-                     $min1 = $score;
-                  } else {
-                     $min2 = $score;
-                  }
-               }
-               $avg += $score;
-               $num++;
-
-               if ($num == 10) {
-                  $avg -= $min1;
-                  $avg -= $min2;
-                  $avg /= 8;
-                  # end this row with an avg
-                  printf HTML_FILE "<td class=cl>%03.02f</td><td class=cl>%d</td>".
-                                 "<td class=cl>%d</td></tr>\n", $avg,$min1,$min2;
-                  $min1 = 500;
-                  $min2 = 500;
-                  $avg = 0;
-                  $num = 0;
-               }
-            }
-
-            # end this row with an avg no matter what
-            if ($num != 0) {
-               if ($num == 9) {
-                  if ($min2 < $min1) {
-                     $min1 = $min2;
-                  }
-                  $avg -= $min1;
-                  $min2 = 500; # flag as not used.
-                  $avg /= 8;
+               print HTML_FILE "<tr bgcolor=\"$bgcolor\"><td>$name</td>";
+               if ($bgcolor eq "#FFFFFF") {
+                  $bgcolor=$bg_grey;
                } else {
-                  $avg /= $num;
-                  $min1 = $min2 = 500; # flag as not used.
+                  $bgcolor="#FFFFFF";
                }
-               while ($num < 10) {
-                  print HTML_FILE "<td>&nbsp;</td>";
-                  $num++;
+               print HTML_FILE "<td>$gender</td>";
+               print HTML_FILE "<td>$junior</td>";
+
+               for (my $i = 0; $i < 10; $i++) {
+                  if ($tmp[$i] != "") {
+                     print HTML_FILE "<td class=cl>$tmp[$i]</td>";
+                  } else {
+                     print HTML_FILE "<td class=cl>&nbsp;</td>";
+                  }
                }
                printf HTML_FILE "<td class=cl>%03.02f</td>", $avg;
-               if ($min1 != 500) {
+               if ($min1 != "") {
                   print HTML_FILE "<td class=cl>$min1</td>";
                } else {
-                  print HTML_FILE "<td class=cl>&nbsp;</td>\n";
+                  print HTML_FILE "<td class=cl>&nbsp;</td>";
                }
-               if ($min2 != 500) {
-                  print HTML_FILE "<td class=cl>$min2</td></tr>\n";
+               if ($min2 != "") {
+                  print HTML_FILE "<td class=cl>$min2</td>";
                } else {
-                  print HTML_FILE "<td class=cl>&nbsp;</td></tr>\n";
+                  print HTML_FILE "<td class=cl>&nbsp;</td>";
                }
+               print HTML_FILE "</tr>\n";
             }
-            print HTML_FILE "</tr>\n";
          }
          print HTML_FILE "</table>\n";
 
