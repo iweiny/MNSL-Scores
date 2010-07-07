@@ -417,7 +417,7 @@ sub process_scores
          $rc[$i]{'avg'} = $avg;
          $rc[$i]{'min1'} = $min1;
          $rc[$i]{'min2'} = $min2;
-         $rc[$i]{'qual'} = "true";
+         $rc[$i]{'qual'} = "X";
          $i++;
 
          $avg = 0;
@@ -429,7 +429,7 @@ sub process_scores
 
    if ($num != 0) {
       if ($num >= 8) {
-         $rc[$i]{'qual'} = "true";
+         $rc[$i]{'qual'} = "X";
       }
       if ($num == 9) {
          if ($min2 < $min1) {
