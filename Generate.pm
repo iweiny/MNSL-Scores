@@ -15,8 +15,7 @@ my @month_names = ("", "January", "Febuary", "March", "April", "May", "June",
 
 sub write_html_header
 {
-   my ($file, $session, $sdate, $date, $week) = @_;
-   my $hrdate = ConvertDateHR($sdate);
+   my ($file) = @_;
 
    print $file "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\n";   
    print $file "<html>\n";
@@ -26,11 +25,6 @@ sub write_html_header
    my @lines = <MYDATA>;
    print $file "@lines";
    close MYDATA;
-   print $file "</head>\n";
-   print $file "<title>MNSL Scores -- Season $session; Week $week(Started: $hrdate); </title>\n";
-   print $file "<body>\n";
-   print $file "<a name=top>\n";  
-   print $file "<div class=pageheader>Season $session; Week $week ($date) [Start: $hrdate]</div>\n";
 }
 
 sub write_html_footer
@@ -360,11 +354,14 @@ sub PrintDayScores2
 
 sub write_table_header
 {
-   my ($file, $event, $division) = @_;
+   my ($file, $event, $division, $final) = @_;
 
    print $file "<h3>$event -- $division</h3>\n";
    print $file "<table>\n";
    print $file "<tr>\n";
+   if ($final == 1) {
+      print $file "<th class=flag>&nbsp;</th>\n";
+   }
    print $file "<th class=sname>Name</th>\n";
    print $file "<th class=flag>F</th>\n";
    print $file "<th class=flag>J</th>\n";
@@ -448,19 +445,85 @@ sub process_scores
    return (@rc);
 }
 
+sub get_scores_for_event_div
+{
+   my ($session, $eid, $did) = @_;
+   my @rc;
+
+   my @shooterids = GetShooters($session);
+   foreach my $shid (@shooterids) {
+      my ($name,$gender,$junior) = GetNameGendJunFromID($shid);
+      my @scores = GetScoresForShooter($shid, $eid, $did, $session);
+
+      my @proc_scores = process_scores(@scores);
+      foreach my $set (@proc_scores) {
+         $set->{'name'} = $name;
+         $set->{'gender'} = $gender;
+         $set->{'junior'} = $junior;
+      }
+      push (@rc, @proc_scores);
+   }
+
+   return (@rc);
+}
+
+sub scores_sort
+{
+   my $aavg = $a->{'avg'};
+   my $aqual = $a->{'qual'};
+   my $anumscores = scalar($a->{'scores'});
+
+   my $bavg = $b->{'avg'};
+   my $bqual = $b->{'qual'};
+   my $bnumscores = scalar($b->{'scores'});
+
+   # if both scores are complete order by average
+   if ($aqual eq "X" && $bqual eq "X") {
+      return ($bavg <=> $aavg);
+   }
+
+   # Whichever is qualified has precidence
+   if ($aqual eq "X") {
+      return (-1);
+   }
+   if ($bqual eq "X") {
+      return (1);
+   }
+
+   return ($bavg <=> $aavg);
+}
+
 #
 # HTML($session)
 # season == directory to generate file for.
 sub HTML
 {
-   my ($html, $session, $sdate, $html_base) = @_;
+   my ($html, $session, $sdate, $html_base, $final) = @_;
 
    open HTML_FILE, ">$html" or die "could not open $html";
 
    # get a list of dates for this session.
    my @dates = GetDates($session);
 
-   write_html_header(\*HTML_FILE, $session, $sdate, ConvertDateHR($dates[(scalar @dates) - 1]), scalar(@dates));
+   write_html_header(\*HTML_FILE);
+
+   my $hrdate = ConvertDateHR($sdate);
+   my $week = scalar(@dates);
+   my $date = ConvertDateHR($dates[$week - 1]);
+
+   if ($final == 1) {
+      print HTML_FILE "</head>\n";
+      print HTML_FILE "<title>MNSL Scores -- Season $session -- Final</title>\n";
+      print HTML_FILE "<body>\n";
+      print HTML_FILE "<a name=top>\n";
+      print HTML_FILE "<div class=pageheader>Season $session -- Final</div>\n";
+   } else {
+      print HTML_FILE "</head>\n";
+      print HTML_FILE "<title>MNSL Scores -- Season $session; Week $week(Started: $hrdate); </title>\n";
+      print HTML_FILE "<body>\n";
+      print HTML_FILE "<a name=top>\n";
+      print HTML_FILE "<div class=pageheader>Season $session; Week $week ($date) [Start: $hrdate]</div>\n";
+   }
 
    my @shooterids = GetShooters($session);
    my @eids = GetEids();
@@ -472,82 +535,102 @@ sub HTML
          my $division = GetDivisionFromID($did);
 
          if (HaveScoresForEvDiv($eid, $did, $session)) {
-            write_table_header(\*HTML_FILE, $event, $division);
+            write_table_header(\*HTML_FILE, $event, $division, $final);
          } else {
             next;
          }
 
+         my @scores = get_scores_for_event_div($session, $eid, $did);
+
+         if ($final == 1) {
+            @scores = sort scores_sort @scores;
+         }
+
+         my $i = 1;
+         my $sep = 0;
          my $bgcolor = "#FFFFFF";
-         foreach my $shid (@shooterids) {
-            my ($name,$gender,$junior) = GetNameGendJunFromID($shid);
-            my @scores = GetScoresForShooter($shid, $eid, $did, $session);
+         foreach my $set (@scores) {
+            my @tmp = @{$set->{'scores'}};
+            my $avg = $set->{'avg'};
+            my $min1 = $set->{'min1'};
+            my $min2 = $set->{'min2'};
+            my $qual = $set->{'qual'};
+            my $name = $set->{'name'};
+            my $gender = $set->{'gender'};
+            my $junior = $set->{'junior'};
 
-            my @proc_scores = process_scores(@scores);
-            foreach my $set (@proc_scores) {
-               my %h = %{$set};
-               my @tmp = @{$h{'scores'}};
-               my $avg = $h{'avg'};
-               my $min1 = $h{'min1'};
-               my $min2 = $h{'min2'};
-               my $qual = $h{'qual'};
+            #debug: print "$name : $avg\n";
 
-               #debug: print "$name : @tmp : $avg : $min1 : $min2 : $qual\n";
-
-               print HTML_FILE "<tr bgcolor=\"$bgcolor\"><td>$name</td>";
-               if ($bgcolor eq "#FFFFFF") {
-                  $bgcolor=$bg_grey;
-               } else {
-                  $bgcolor="#FFFFFF";
+            if ($final == 1 && $qual ne "X" && $sep == 0) {
+               print HTML_FILE "<tr bgcolor=#000000>";
+               print HTML_FILE "<td>x</td>";
+               for (my $j = 0; $j < 16; $j++) {
+                  print HTML_FILE "<td></td>";
                }
-               print HTML_FILE "<td>$gender</td>";
-               print HTML_FILE "<td>$junior</td>";
-
-               for (my $i = 0; $i < 10; $i++) {
-                  if ($tmp[$i] != "") {
-                     print HTML_FILE "<td class=cl>$tmp[$i]</td>";
-                  } else {
-                     print HTML_FILE "<td class=cl>&nbsp;</td>";
-                  }
-               }
-               printf HTML_FILE "<td class=cl>%03.02f</td>", $avg;
-               if ($min1 != "") {
-                  print HTML_FILE "<td class=cl>$min1</td>";
-               } else {
-                  print HTML_FILE "<td class=cl>&nbsp;</td>";
-               }
-               if ($min2 != "") {
-                  print HTML_FILE "<td class=cl>$min2</td>";
-               } else {
-                  print HTML_FILE "<td class=cl>&nbsp;</td>";
-               }
-               print HTML_FILE "</tr>\n";
+               print HTML_FILE "</tr>";
+               $sep = 1;
             }
+
+            print HTML_FILE "<tr bgcolor=\"$bgcolor\">";
+            if ($bgcolor eq "#FFFFFF") {
+               $bgcolor=$bg_grey;
+            } else {
+               $bgcolor="#FFFFFF";
+            }
+
+            if ($final == 1) {
+               print HTML_FILE "<td>$i</td>";
+               $i++;
+            }
+            print HTML_FILE "<td>$name</td>";
+            print HTML_FILE "<td>$gender</td>";
+            print HTML_FILE "<td>$junior</td>";
+
+            for (my $i = 0; $i < 10; $i++) {
+               if ($tmp[$i] != "") {
+                  print HTML_FILE "<td class=cl>$tmp[$i]</td>";
+               } else {
+                  print HTML_FILE "<td class=cl>&nbsp;</td>";
+               }
+            }
+            printf HTML_FILE "<td class=cl>%03.03f</td>", $avg;
+            if ($min1 != "") {
+               print HTML_FILE "<td class=cl>$min1</td>";
+            } else {
+               print HTML_FILE "<td class=cl>&nbsp;</td>";
+            }
+            if ($min2 != "") {
+               print HTML_FILE "<td class=cl>$min2</td>";
+            } else {
+               print HTML_FILE "<td class=cl>&nbsp;</td>";
+            }
+            print HTML_FILE "</tr>\n";
          }
          print HTML_FILE "</table>\n";
-
       }
    }
 
-   # we have a list of dates for this session from above.  Print those dates with week numbers.
-   my $x = 0;
-   # for each date write header with quick links
-   print HTML_FILE "<hr><br>";
-   print HTML_FILE "Click below (or scroll down) to verify your scores on individual days<p>\n";
-   print HTML_FILE "</p><table class=\"steggy\">\n";
-   print HTML_FILE "<tbody><tr  class=\"steggy\">\n";
-   print HTML_FILE "<td class=\"datelist\">\n";
-   my $i=1;
-   foreach my $date (@dates) {
-         my $hrdate = ConvertDateHR($date);
-         # print the header for this
-         print HTML_FILE "<a href=\"$html_base#$date\">$hrdate (Wk: $i)</a> &nbsp;|&nbsp;\n";
-         $i++;
-   }
-   print HTML_FILE "</tr>\n";
-   print HTML_FILE "</tbody></table>\n";
+   if ($final != 1) {
+      # we have a list of dates for this session from above.  Print those dates with week numbers.
+      # for each date write header with quick links
+      print HTML_FILE "<hr><br>";
+      print HTML_FILE "Click below (or scroll down) to verify your scores on individual days<p>\n";
+      print HTML_FILE "</p><table class=\"steggy\">\n";
+      print HTML_FILE "<tbody><tr  class=\"steggy\">\n";
+      print HTML_FILE "<td class=\"datelist\">\n";
+      my $i=1;
+      foreach my $date (@dates) {
+            my $hrdate = ConvertDateHR($date);
+            # print the header for this
+            print HTML_FILE "<a href=\"$html_base#$date\">$hrdate (Wk: $i)</a> &nbsp;|&nbsp;\n";
+            $i++;
+      }
+      print HTML_FILE "</tr>\n";
+      print HTML_FILE "</tbody></table>\n";
 
-   #PrintDayScores(\*HTML_FILE, $session);
-   PrintDayScores2(\*HTML_FILE, $session, $html_base);
+      #PrintDayScores(\*HTML_FILE, $session);
+      PrintDayScores2(\*HTML_FILE, $session, $html_base);
+   }
 
    write_html_footer(\*HTML_FILE);
    close(HTML_FILE);

@@ -550,7 +550,25 @@ sub GenHTML
    my $sdate = GetStartDate($session);
    my $file = "$datadir/Session$session-$sdate.html";
 
-   Generate::HTML($file, $session, $sdate, $html_base);
+   Generate::HTML($file, $session, $sdate, $html_base, 0);
+
+   my $win = $main->DialogBox(-title => "Generate HTML Complete",
+                  -buttons => ['OK', 'View in Firefox']);
+   $win->Label(-text => "Written to: $file\n")->pack;
+   my $choice = $win->Show;
+   if ($choice eq 'View in Firefox') {
+      system("firefox $file&");
+   }
+}
+
+sub GenHTMLFinal
+{
+   my ($main) = @_;
+
+   my $sdate = GetStartDate($session);
+   my $file = "$datadir/Session$session-$sdate-final.html";
+
+   Generate::HTML($file, $session, $sdate, $html_base, 1);
 
    my $win = $main->DialogBox(-title => "Generate HTML Complete",
                   -buttons => ['OK', 'View in Firefox']);
@@ -761,6 +779,7 @@ sub build_menubar
    my $file_mb = $menu_bar->Menubutton(-text=>'File')->pack(-side=>'left');
    $file_mb->command(-label=>'Choose Session...', -command => [\&ChooseSession, $mw]);
    $file_mb->command(-label=>'Generate HTML...', -command => [\&GenHTML, $mw]);
+   $file_mb->command(-label=>'Generate Final HTML...', -command => [\&GenHTMLFinal, $mw]);
    $file_mb->command(-label=>'Export Data File...', -command => [\&ExportDataFile, $mw]);
    $file_mb->command(-label=>'Quit', -command => [\&Exit]);
 
