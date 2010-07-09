@@ -630,6 +630,7 @@ sub HTML
    }
 
    if ($final == 1) {
+      my $total = 0;
       print HTML_FILE "<hr><br>";
       print HTML_FILE "<table>";
       print HTML_FILE "<tr><th>Name</th><th>Num Tickets</th><th>Recv</th></tr>";
@@ -637,10 +638,11 @@ sub HTML
          my $num = $tickets{$name};
          print HTML_FILE "<tr>";
          print HTML_FILE "<td>$name</td><td align=\"center\">$num</td><td>&nbsp;</td>";
-         #print "$name gets $num tickets\n";
+         $total += $num;
          print HTML_FILE "</tr>";
       }
       print HTML_FILE "</table>";
+      print HTML_FILE "<br>$total tickets earned this Session</p>";
    } else {
       # we have a list of dates for this session from above.  Print those dates with week numbers.
       # for each date write header with quick links
