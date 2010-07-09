@@ -449,11 +449,22 @@ sub get_scores_for_event_div
 {
    my ($session, $eid, $did) = @_;
    my @rc;
+   my %tickets;
 
    my @shooterids = GetShooters($session);
    foreach my $shid (@shooterids) {
       my ($name,$gender,$junior) = GetNameGendJunFromID($shid);
       my @scores = GetScoresForShooter($shid, $eid, $did, $session);
+
+      my $num = scalar(@scores);
+      my $rem = $num % 10;
+      $num = int($num/10);
+      if ($rem >= 8) {
+         $num++;
+      }
+      if ($num > 0) {
+         $tickets{$name} = $num;
+      }
 
       my @proc_scores = process_scores(@scores);
       foreach my $set (@proc_scores) {
@@ -464,7 +475,7 @@ sub get_scores_for_event_div
       push (@rc, @proc_scores);
    }
 
-   return (@rc);
+   return (\@rc, \%tickets);
 }
 
 sub scores_sort
@@ -525,9 +536,10 @@ sub HTML
       print HTML_FILE "<div class=pageheader>Season $session; Week $week ($date) [Start: $hrdate]</div>\n";
    }
 
-   my @shooterids = GetShooters($session);
    my @eids = GetEids();
    my @dids = GetDids();
+
+   my %tickets;
 
    foreach my $eid (@eids) {
       foreach my $did (@dids) {
@@ -540,7 +552,14 @@ sub HTML
             next;
          }
 
-         my @scores = get_scores_for_event_div($session, $eid, $did);
+         my ($p_scores, $p_t) = get_scores_for_event_div($session, $eid, $did);
+         my @scores = @{$p_scores};
+
+         for my $name (keys %{$p_t}) {
+            my $num = $p_t->{$name};
+            #print "$name gets $num more tickets for $event/$division\n";
+            $tickets{$name} = $tickets{$name} + $num;
+         }
 
          if ($final == 1) {
             @scores = sort scores_sort @scores;
@@ -610,7 +629,19 @@ sub HTML
       }
    }
 
-   if ($final != 1) {
+   if ($final == 1) {
+      print HTML_FILE "<hr><br>";
+      print HTML_FILE "<table>";
+      print HTML_FILE "<tr><th>Name</th><th>Num Tickets</th><th>Recv</th></tr>";
+      for my $name (sort keys %tickets) {
+         my $num = $tickets{$name};
+         print HTML_FILE "<tr>";
+         print HTML_FILE "<td>$name</td><td align=\"center\">$num</td><td>&nbsp;</td>";
+         #print "$name gets $num tickets\n";
+         print HTML_FILE "</tr>";
+      }
+      print HTML_FILE "</table>";
+   } else {
       # we have a list of dates for this session from above.  Print those dates with week numbers.
       # for each date write header with quick links
       print HTML_FILE "<hr><br>";
