@@ -550,7 +550,7 @@ sub GenHTML
    my $sdate = GetStartDate($session);
    my $file = "$datadir/Session$session-$sdate.html";
 
-   Generate::HTML($file, $session, $sdate, $html_base, 0);
+   Generate::HTML($file, $session, $sdate, $html_base, 0, "");
 
    my $win = $main->DialogBox(-title => "Generate HTML Complete",
                   -buttons => ['OK', 'View in Firefox']);
@@ -567,12 +567,13 @@ sub GenHTMLFinal
 
    my $sdate = GetStartDate($session);
    my $file = "$datadir/Session$session-$sdate-final.html";
+   my $tik_file = "$datadir/Session$session-$sdate-tickets.html";
 
-   Generate::HTML($file, $session, $sdate, $html_base, 1);
+   Generate::HTML($file, $session, $sdate, $html_base, 1, $tik_file);
 
    my $win = $main->DialogBox(-title => "Generate HTML Complete",
                   -buttons => ['OK', 'View in Firefox']);
-   $win->Label(-text => "Written to: $file\n")->pack;
+   $win->Label(-text => "Written to: $file\nAnd: $tik_file")->pack;
    my $choice = $win->Show;
    if ($choice eq 'View in Firefox') {
       system("firefox $file&");

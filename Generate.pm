@@ -509,7 +509,7 @@ sub scores_sort
 # season == directory to generate file for.
 sub HTML
 {
-   my ($html, $session, $sdate, $html_base, $final) = @_;
+   my ($html, $session, $sdate, $html_base, $final, $tik_file) = @_;
 
    open HTML_FILE, ">$html" or die "could not open $html";
 
@@ -582,7 +582,7 @@ sub HTML
 
             if ($final == 1 && $qual ne "X" && $sep == 0) {
                print HTML_FILE "<tr bgcolor=#000000>";
-               print HTML_FILE "<td>x</td>";
+               print HTML_FILE "<td></td>";
                for (my $j = 0; $j < 16; $j++) {
                   print HTML_FILE "<td></td>";
                }
@@ -631,18 +631,31 @@ sub HTML
 
    if ($final == 1) {
       my $total = 0;
-      print HTML_FILE "<hr><br>";
-      print HTML_FILE "<table>";
-      print HTML_FILE "<tr><th>Name</th><th>Num Tickets</th><th>Recv</th></tr>";
+
+      open HTML_FILE2, ">$tik_file" or die "could not open $tik_file";
+      write_html_header(\*HTML_FILE2);
+      print HTML_FILE2 "<h3>Tickets earned Session $session</h3>";
+      print HTML_FILE2 "<table>";
+      print HTML_FILE2 "<tr><th>Name</th><th>Num Tickets</th><th>Recv</th></tr>";
+      my $bgcolor = "#FFFFFF";
       for my $name (sort keys %tickets) {
          my $num = $tickets{$name};
-         print HTML_FILE "<tr>";
-         print HTML_FILE "<td>$name</td><td align=\"center\">$num</td><td>&nbsp;</td>";
+         print HTML_FILE2 "<tr bgcolor=\"$bgcolor\">";
+         if ($bgcolor eq "#FFFFFF") {
+            $bgcolor=$bg_grey;
+         } else {
+            $bgcolor="#FFFFFF";
+         }
+         print HTML_FILE2 "<td>$name</td><td align=\"center\">$num</td><td>&nbsp;</td>";
          $total += $num;
-         print HTML_FILE "</tr>";
+         print HTML_FILE2 "</tr>";
       }
-      print HTML_FILE "</table>";
-      print HTML_FILE "<br>$total tickets earned this Session</p>";
+      print HTML_FILE2 "</table>";
+      print HTML_FILE2 "<br>$total tickets earned this Session</p>";
+      print HTML_FILE2 "</body></html>";
+      write_html_footer(\*HTML_FILE2);
+      close(HTML_FILE2);
+
    } else {
       # we have a list of dates for this session from above.  Print those dates with week numbers.
       # for each date write header with quick links
