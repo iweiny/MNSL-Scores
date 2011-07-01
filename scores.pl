@@ -98,9 +98,16 @@ sub ChooseSession
    $choice = $dialog->Show();
    if ($choice eq "OK") {
       if (InvalidSession($s)) {
-         if (!AddSession($main, $s)) {
+         my $dialog = $main->DialogBox(-title => "Invalid Session", -buttons => ["OK","Cancel"]);
+         $dialog->Label(-text => "Session $s is invlaid: Create new?")->pack(-side=>'left');
+         $choice = $dialog->Show();
+         if ($choice eq "OK") {
+            if (!AddSession($main, $s)) {
+               return;
+            }
+	 } else {
             return;
-         }
+	 }
       }
       $session = $s;
       my $title = "MNSL Scores -- Session $session ($session_st)";
