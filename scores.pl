@@ -560,11 +560,14 @@ sub GenHTML
    Generate::HTML($file, $session, $sdate, $html_base, 0, "");
 
    my $win = $main->DialogBox(-title => "Generate HTML Complete",
-                  -buttons => ['OK', 'View in Google Chrome']);
+                  -buttons => ['OK', 'View Google Chrome', 'View Firefox']);
    $win->Label(-text => "Written to: $file\n")->pack;
    my $choice = $win->Show;
-   if ($choice eq 'View in Google Chrome') {
+   if ($choice eq 'View Google Chrome') {
       system("google-chrome $file&");
+   }
+   if ($choice eq 'View Firefox') {
+      system("firefox $file&");
    }
 }
 
@@ -579,11 +582,14 @@ sub GenHTMLFinal
    Generate::HTML($file, $session, $sdate, $html_base, 1, $tik_file);
 
    my $win = $main->DialogBox(-title => "Generate HTML Complete",
-                  -buttons => ['OK', 'View in Google Chrome']);
+                  -buttons => ['OK', 'View Google Chrome', 'View Firefox']);
    $win->Label(-text => "Written to: $file\nAnd: $tik_file")->pack;
    my $choice = $win->Show;
-   if ($choice eq 'View in Google Chrome') {
+   if ($choice eq 'View Google Chrome') {
       system("google-chrome $file&");
+   }
+   if ($choice eq 'View Firefox') {
+      system("firefox $file&");
    }
 }
 
