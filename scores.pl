@@ -88,6 +88,12 @@ sub AddSession
    return (0);
 }
 
+sub GenMainTitleStr
+{
+   my ($session, $session_st) = @_;
+   return "MNSL Scores -- Session $session (Start Date: $session_st)";
+}
+
 sub ChooseSession
 {
    my ($main) = @_;
@@ -110,7 +116,7 @@ sub ChooseSession
 	 }
       }
       $session = $s;
-      my $title = "MNSL Scores -- Session $session ($session_st)";
+      my $title = GenMainTitleStr($session, $session_st);
       $main->title("$title");
    }
 }
@@ -927,7 +933,7 @@ sub build_main_window
 {
    LoadDBs();
 
-   my $title = "MNSL Scores -- Session $session (Start Date: $session_st)";
+   my $title = GenMainTitleStr($session, $session_st);
    my $mw = new MainWindow(-title => $title);
 
    if (InvalidSession($session)) {
