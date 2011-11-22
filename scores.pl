@@ -56,15 +56,45 @@ sub DisplayError
    $win->Show();
 }
 
+sub SetSessionStartGlobal
+{
+   my ($session) = @_;
+   my $sth = MNSLQuery::query("select sdate from league where lnum='$session';");
+   my @s = $sth->fetchrow_array;
+   if (scalar @s > 0) {
+      $session_st = $s[0];
+   }
+}
+
 sub InvalidSession
 {
    my ($s) = @_;
-   my $sth = MNSLQuery::query("select id,sdate from league where lnum='$s';");
+   my $sth = MNSLQuery::query("select id from league where lnum='$s';");
    my @s = $sth->fetchrow_array;
-   if (scalar @s > 0) {
-      $session_st = $s[1];
-   }
    return (scalar @s < 1);
+}
+
+sub WarnOldSession
+{
+   my ($mw, $session) = @_;
+   my $sth = MNSLQuery::query("select max(lnum) from league;");
+   my @s = $sth->fetchrow_array;
+   if (scalar @s < 1) {
+      DisplayError($mw, "Fatal; DB not intitialized properly...\n");
+      exit 1;
+   }
+   if ($session < $s[0]) {
+      my $dialog = $mw->DialogBox(-title => "WARNING current session ($session) < max session ($s[0])",
+                                    -buttons => ["OK","Cancel"]);
+      $dialog->Label(-text => "WARNING: current session ($session) < max session ($s[0])")
+                              ->pack(-side=>'top');
+      $dialog->Label(-text => "Move working session forward to most current session?")
+                              ->pack(-side=>'top');
+      $choice = $dialog->Show();
+      if ($choice eq "OK") {
+         ChangeSession($mw, $s[0]);
+      }
+   }
 }
 
 sub CreateSession
@@ -94,6 +124,15 @@ sub GenMainTitleStr
    return "MNSL Scores -- Session $session (Start Date: $session_st)";
 }
 
+sub ChangeSession
+{
+   my ($main, $s) = @_;
+   $session = $s;
+   SetSessionStartGlobal($s);
+   my $title = GenMainTitleStr($s, $session_st);
+   $main->title("$title");
+}
+
 sub ChooseSession
 {
    my ($main) = @_;
@@ -115,9 +154,7 @@ sub ChooseSession
             return;
 	 }
       }
-      $session = $s;
-      my $title = GenMainTitleStr($session, $session_st);
-      $main->title("$title");
+      ChangeSession($main, $s);
    }
 }
 
@@ -942,6 +979,8 @@ sub build_main_window
       }
    }
 
+   SetSessionStartGlobal($session);
+
    build_menubar($mw);
    my $frame = $mw->Frame->pack(-side=>'bottom', -fill=>'x');
 
@@ -1008,6 +1047,7 @@ sub build_main_window
    $mw{top} = int(($sh - $mw{height})/8);
    $mw->geometry("+".$mw{left}."+".$mw{top});
    $mw->resizable(0,0);
+   WarnOldSession($mw, $session);
 }
 
 # main
